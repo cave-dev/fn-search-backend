@@ -1,0 +1,8 @@
+[package]
+name = "db"
+version = "0.1.0"
+authors = ["Andrew Houts <ahouts4@gmail.com>"]
+
+[dependencies]
+diesel = { version = "1.3.3", features = ["postgres"] }
+dotenv = "0.13.0"

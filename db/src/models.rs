@@ -18,7 +18,6 @@ pub struct Function {
     pub id: i64,
     pub repo_id: i32,
     pub type_signature: String,
-    pub return_type: Option<String>,
 }
 
 #[derive(Insertable)]
@@ -26,5 +25,4 @@ pub struct Function {
 pub struct NewFunction {
     pub repo_id: i32,
     pub type_signature: String,
-    pub return_type: Option<String>,
 }

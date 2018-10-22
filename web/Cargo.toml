@@ -1,0 +1,7 @@
+[package]
+name = "web"
+version = "0.1.0"
+authors = ["Andrew Houts <ahouts4@gmail.com>"]
+
+[dependencies]
+fn_search_backend_db = { path = "../db" }

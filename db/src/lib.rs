@@ -1,14 +1,18 @@
+#![allow(proc_macro_derive_resolution_fallback)]
+
 #[macro_use]
 extern crate diesel;
 extern crate dotenv;
 
 pub mod schema;
+pub mod models;
 
 use diesel::prelude::*;
 use diesel::pg::PgConnection;
 use dotenv::dotenv;
 use std::env;
 use schema::*;
+use models::*;
 
 pub fn establish_connection() -> PgConnection {
     dotenv().ok();
@@ -19,33 +23,30 @@ pub fn establish_connection() -> PgConnection {
         .expect(&format!("Error connecting to {}", database_url))
 }
 
-#[derive(Queryable)]
-pub struct Repository {
-    pub id: i32,
-    pub url: String,
-}
+#[test]
+fn insert_repo() {
+    let connection = establish_connection();
 
-#[derive(Queryable)]
-pub struct Function {
-    pub id: i64,
-    pub repo_id: i32,
-    pub type_signature: String,
-    pub return_type: Option<String>,
+    let new_repo = NewRepository{
+        url: String::from("https://github.com/cave-dev/fn-search-backend"),
+    };
+
+    diesel::insert_into(repositories::table)
+        .values(&new_repo)
+        .get_result::<Repository>(&connection)
+        .expect("Error saving new repo");
 }
 
 #[test]
 fn test_db() {
     let connection = establish_connection();
-    let results = repository
-        .query()
+    let results = repositories::table
         .limit(5)
         .load::<Repository>(&connection)
         .expect("Error loading repos");
 
     println!("Displaying {} repos", results.len());
     for repo in results {
-        println!("{}", repo.id);
-        println!("----------\n");
-        println!("{}", repo.url);
+        println!("{} -> {}", repo.id, repo.url);
     }
 }

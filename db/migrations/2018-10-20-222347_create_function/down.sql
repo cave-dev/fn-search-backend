@@ -1,3 +1,0 @@
-ALTER TABLE "function" DROP CONSTRAINT IF EXISTS "function_fk0";
-
-DROP TABLE IF EXISTS "function";

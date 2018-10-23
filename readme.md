@@ -8,7 +8,7 @@ Install postgres
 
 Create a user and database in postgres
 
-Fill out ./config.toml with the DB info
+Copy ./config.toml.example to ./config.toml and fill it out
 
 #### run DB migrations
 

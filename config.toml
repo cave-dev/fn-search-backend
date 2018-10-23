@@ -1,7 +1,0 @@
-
-[db]
-host = "localhost"
-port = 5432
-db = "fn_search_backend"
-user = "fn_search_backend_user"
-password = "fn_search_backend_passwd"

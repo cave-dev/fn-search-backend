@@ -5,6 +5,9 @@ extern crate serde;
 extern crate serde_derive;
 extern crate toml;
 
+#[cfg(test)]
+mod tests;
+
 use std::fs::File;
 use std::io::prelude::*;
 use std::error::Error;
@@ -23,15 +26,10 @@ pub struct Config {
     pub db: DbConfig,
 }
 
-pub fn get_config() -> Result<Config, Box<Error>> {
-    let mut f= File::open("./config.toml")?;
+pub fn get_config(f: &str) -> Result<Config, Box<Error>> {
+    let mut f= File::open(f)?;
     let mut s = String::new();
     f.read_to_string(&mut s)?;
     let x = toml::from_str(s.as_mut_str())?;
     Ok(x)
-}
-
-#[test]
-fn test_load_config_file() {
-    get_config().expect("error loading config file");
 }

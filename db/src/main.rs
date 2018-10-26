@@ -24,9 +24,8 @@ pub fn establish_connection(f: &str) -> Result<PgConnection, Box<Error>> {
     Ok(PgConnection::establish(&database_url)?)
 }
 
-pub fn run_migrations(cfg_file: &str) -> Result<(), Box<Error>> {
-    let connection = establish_connection(cfg_file)?;
-    run_pending_migrations(&connection)?;
+pub fn run_migrations(conn: &PgConnection) -> Result<(), Box<Error>> {
+    run_pending_migrations(conn)?;
     Ok(())
 }
 
@@ -39,7 +38,11 @@ fn main() {
     ).get_matches();
 
     let cfg_file = matches.value_of("CONFIG").expect("error parsing configuration file");
-    run_migrations(cfg_file).map_err(|e| {
+    let conn = establish_connection(cfg_file).map_err(|e| {
+        println!("error while running migrations: {}", e);
+        ()
+    }).unwrap(); // panic on error
+    run_migrations(&conn).map_err(|e| {
         println!("error while running migrations: {}", e);
         ()
     }).unwrap(); // panic on error

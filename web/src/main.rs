@@ -1,5 +1,11 @@
 extern crate actix_web;
-use actix_web::{server, App, HttpRequest};
+use actix_web::{
+    server,
+    App,
+    HttpRequest,
+    Result,
+    middleware::cors::Cors,
+};
 
 #[macro_use]
 extern crate lazy_static;
@@ -125,13 +131,20 @@ fn gen_rand_search_result() -> String {
     serde_json::to_string(&res_wrapper).unwrap()
 }
 
-fn index(_req: &HttpRequest) -> impl Responder {
-    gen_rand_search_result()
+fn index(req: &HttpRequest) -> Result<impl Responder> {
+    let _: String = req.match_info().query("type_signature")?;
+    Ok(gen_rand_search_result())
 }
 
 fn main() {
-    server::new(|| App::new().resource("/search", |r| r.f(index)))
-        .bind("127.0.0.1:8088")
+    server::new(move || App::new()
+                .configure(|app| {
+                    Cors::for_app(app)
+                        .allowed_origin("http://localhost:8080")
+                        .resource("/search/{type_signature}", |r| r.f(index))
+                        .register()
+    }))
+        .bind("127.0.0.1:8000")
         .unwrap()
         .run();
 }

@@ -1,7 +1,13 @@
 [package]
 name = "web"
 version = "0.1.0"
-authors = ["Andrew Houts <ahouts4@gmail.com>"]
+authors = ["Andrew Houts <ahouts4@gmail.com>", "Yuya Yabe <yuyabee@gmail.com>"]
 
 [dependencies]
-fn_search_backend_db = { path = "../db" }
+actix-web = "0.7"
+lazy_static = "1.1.0"
+rand = "0.5.5"
+db = { path = "../db" }
+serde_json = "1.0.32"
+serde_derive = "1.0.80"
+serde = "1.0.80"

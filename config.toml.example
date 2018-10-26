@@ -1,0 +1,7 @@
+
+[db]
+host = "localhost"
+port = 5432
+db = "fn_search_db"
+user = "fn_search_user"
+password = "fn_search_password"

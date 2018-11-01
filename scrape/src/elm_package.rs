@@ -27,5 +27,5 @@ pub type ElmPackageMetadataList = Vec<ElmPackageMetadata>;
 
 pub fn find_git_url(ur: &ElmPackageMetadata) -> GitUrl {
     //TODO add logic to find it, for now assume github
-    format!("ssh://git@github.com/{}.git", ur.name)
+    format!("https://github.com/{}", ur.name)
 }

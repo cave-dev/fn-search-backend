@@ -67,6 +67,7 @@ pub fn sync_repo(m: &ElmPackageMetadata, o: &RepoCacheOptions) -> BoxedError<Out
 
 fn clone_repo(git_url: &GitUrl, repo_path: &str) -> BoxedError<Output> {
     Command::new("git")
+        .env("GIT_TERMINAL_PROMPT", "0")
         .args(&["clone", "--depth", "1", git_url, repo_path])
         .output()
         .map_err(|e| -> Box<Error + Send> {

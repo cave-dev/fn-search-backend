@@ -1,0 +1,7 @@
+[package]
+name = "parsers"
+version = "0.1.0"
+authors = ["Yuya Yabe <yuyabee@gmail.com>"]
+
+[dependencies]
+nom = "^4.1"

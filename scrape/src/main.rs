@@ -7,6 +7,7 @@ extern crate serde_json;
 extern crate rayon;
 #[macro_use]
 extern crate clap;
+extern crate fn_search_backend_db;
 
 pub mod elm_package;
 pub mod elm_parse;
@@ -16,7 +17,7 @@ use std::error::Error;
 use rayon::prelude::*;
 use repo_cache::{sync_repo, RepoCacheOptions};
 use std::io::{stderr, Write};
-use elm_package::ElmPackageMetadata;
+use elm_package::ElmPackageMetadataRaw;
 
 fn main() -> Result<(), Box<Error>> {
     let matches = clap_app!(myapp =>
@@ -31,7 +32,7 @@ fn main() -> Result<(), Box<Error>> {
         cache_path: String::from(cfg_file),
     };
     let elm_libs = elm_package::get_elm_libs()?;
-    let cloned_libs: Vec<&ElmPackageMetadata> = elm_libs
+    let cloned_libs: Vec<&ElmPackageMetadataRaw> = elm_libs
         .par_iter()
         .map(|i| {
             (i, sync_repo(i, &config))

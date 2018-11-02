@@ -1,5 +1,5 @@
 
-use elm_package::{ElmPackageMetadata, find_git_url};
+use elm_package::{ElmPackageMetadataRaw, find_git_url};
 use std::error::Error;
 use std::process::{Command, Output};
 use std::path::Path;
@@ -42,9 +42,38 @@ impl Error for InvalidRepoError {
     }
 }
 
+#[derive(Debug)]
+struct GitError {
+    details: String,
+}
+
+impl GitError {
+    fn new(desc: String) -> Self {
+        GitError{
+            details: desc,
+        }
+    }
+
+    fn build(desc: String) -> Box<Self> {
+        Box::new(GitError::new(desc))
+    }
+}
+
+impl fmt::Display for GitError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.details)
+    }
+}
+
+impl Error for GitError {
+    fn description(&self) -> &str {
+        self.details.as_str()
+    }
+}
+
 type BoxedError<T> = Result<T, Box<Error + Send>>;
 
-fn get_repo_path(m: &ElmPackageMetadata, o: &RepoCacheOptions) -> BoxedError<String> {
+fn get_repo_path(m: &ElmPackageMetadataRaw, o: &RepoCacheOptions) -> BoxedError<String> {
     Path::new(o.cache_path.as_str())
         .join(Path::new(m.name.as_str()))
         .to_str()
@@ -56,12 +85,17 @@ fn get_repo_path(m: &ElmPackageMetadata, o: &RepoCacheOptions) -> BoxedError<Str
         })
 }
 
-pub fn sync_repo(m: &ElmPackageMetadata, o: &RepoCacheOptions) -> BoxedError<Output> {
+pub fn sync_repo(m: &ElmPackageMetadataRaw, o: &RepoCacheOptions) -> BoxedError<Output> {
     let repo_path = get_repo_path(m, o)?;
-    if Path::new(repo_path.as_str()).exists() {
+    let res = if Path::new(repo_path.as_str()).exists() {
         update_repo(repo_path.as_str())
     } else {
         clone_repo(&find_git_url(m), repo_path.as_str())
+    }?;
+    if !res.status.success() {
+        Err(GitError::build(res.status.to_string()))
+    } else {
+        Ok(res)
     }
 }
 

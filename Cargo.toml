@@ -1,5 +1,5 @@
 [package]
-name = "fn-search-backend"
+name = "fn_search_backend"
 version = "0.1.0"
 authors = ["Andrew Houts <ahouts4@gmail.com>"]
 

@@ -12,11 +12,16 @@ fn insert_repo() {
     let connection = establish_connection(RELATIVE_CFG_FILE)
         .expect("error establishing connection to db");
     let new_repo = NewRepository{
-        url: String::from("https://github.com/cave-dev/fn-search-backend"),
+        name: "cave-dev/fn-search-backend",
+        url: "https://github.com/cave-dev/fn-search-backend",
     };
 
     diesel::insert_into(repositories::table)
         .values(&new_repo)
+        // if our name is the same as one already in the db, update it
+        .on_conflict(repositories::name)
+        .do_update()
+        .set(&new_repo)
         .get_result::<Repository>(&connection)
         .expect("Error saving new repo");
 }

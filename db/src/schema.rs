@@ -3,13 +3,13 @@ table! {
         id -> Int8,
         repo_id -> Int4,
         type_signature -> Text,
-        return_type -> Nullable<Text>,
     }
 }
 
 table! {
     repositories (id) {
         id -> Int4,
+        name -> Text,
         url -> Text,
     }
 }

@@ -1,5 +1,5 @@
 [package]
-name = "db"
+name = "fn-search-backend-db"
 version = "0.1.0"
 authors = ["Andrew Houts <ahouts4@gmail.com>"]
 

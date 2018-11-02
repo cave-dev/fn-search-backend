@@ -4,13 +4,15 @@ use schema::*;
 #[derive(Queryable)]
 pub struct Repository {
     pub id: i32,
+    pub name: String,
     pub url: String,
 }
 
-#[derive(Insertable)]
+#[derive(Insertable, AsChangeset)]
 #[table_name="repositories"]
-pub struct NewRepository {
-    pub url: String,
+pub struct NewRepository<'a> {
+    pub name: &'a str,
+    pub url: &'a str,
 }
 
 #[derive(Queryable)]
@@ -22,7 +24,7 @@ pub struct Function {
 
 #[derive(Insertable)]
 #[table_name="functions"]
-pub struct NewFunction {
+pub struct NewFunction<'a> {
     pub repo_id: i32,
-    pub type_signature: String,
+    pub type_signature: &'a str,
 }

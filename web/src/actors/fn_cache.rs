@@ -6,7 +6,7 @@ use fn_search_backend_db::models::Function;
 use actix::dev::{MessageResponse, ResponseChannel};
 
 pub enum Request {
-    UpdateCache(Vec<Function>),
+    UpdateCache(Arc<FnCache>),
     GetCache,
 }
 
@@ -53,8 +53,8 @@ impl Handler<Request> for FnCacheBroker {
     fn handle(&mut self, req: Request, _ctx: &mut Context<Self>) -> Response {
         match req {
             Request::GetCache => Response::Cache(self.cache.clone()),
-            Request::UpdateCache(fns) => {
-                self.cache = Arc::new(fns.iter().collect());
+            Request::UpdateCache(cache) => {
+                self.cache = cache;
                 Response::Ok
             },
         }

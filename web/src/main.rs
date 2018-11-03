@@ -20,6 +20,7 @@ extern crate fn_search_backend_db;
 
 use rand::random;
 use actix_web::Responder;
+
 pub(crate) mod collections;
 pub(crate) mod actors;
 #[cfg(test)]

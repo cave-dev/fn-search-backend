@@ -65,12 +65,12 @@ fn setup_test_cache() -> FnCache {
 }
 
 #[test]
-fn cache_takes_functions() {
+fn build_works_for_functions() {
     setup_test_cache();
 }
 
 #[test]
-fn cache_search_gives_values() {
+fn search_gives_values() {
     let c = setup_test_cache();
     let res = c.search("String -> Int", 10, None);
     assert!(res.is_some());
@@ -81,7 +81,7 @@ fn cache_search_gives_values() {
 }
 
 #[test]
-fn cache_search_gives_value() {
+fn search_gives_value() {
     let c = setup_test_cache();
     let res = c.search("Bool -> Bool", 10, None);
     assert!(res.is_some());
@@ -92,14 +92,14 @@ fn cache_search_gives_value() {
 }
 
 #[test]
-fn cache_search_gives_none_on_invalid_start() {
+fn search_gives_none_on_invalid_start() {
     let c = setup_test_cache();
-    let res = c.search("String -> Int", 10, Some(3));
+    let res = c.search("String -> Int", 10, Some(2));
     assert!(res.is_none());
 }
 
 #[test]
-fn cache_search_gives_some_start_index() {
+fn search_gives_some_start_index() {
     let c = setup_test_cache();
     let res = c.search("String -> Int", 10, Some(1));
     assert!(res.is_some());
@@ -110,7 +110,7 @@ fn cache_search_gives_some_start_index() {
 }
 
 #[test]
-fn cache_search_gives_only_num() {
+fn search_gives_only_num() {
     let c = setup_test_cache();
     let res = c.search("String -> Int", 1, None);
     assert!(res.is_some());
@@ -121,7 +121,7 @@ fn cache_search_gives_only_num() {
 }
 
 #[test]
-fn cache_search_gives_only_num_with_start() {
+fn search_gives_only_num_with_start() {
     let c = setup_test_cache();
     let res = c.search("String -> Int", 1, Some(1));
     assert!(res.is_some());
@@ -132,14 +132,14 @@ fn cache_search_gives_only_num_with_start() {
 }
 
 #[test]
-fn cache_search_gives_none_on_bad_key() {
+fn search_gives_none_on_bad_key() {
     let c = setup_test_cache();
     let res = c.search("String -> In", 10, None);
     assert!(res.is_none());
 }
 
 #[test]
-fn cache_suggest_gives_suggestion() {
+fn suggest_gives_suggestion() {
     let c = setup_test_cache();
     let res = c.suggest("String -> In", 10);
     assert!(res.is_some());
@@ -149,7 +149,7 @@ fn cache_suggest_gives_suggestion() {
 }
 
 #[test]
-fn cache_suggest_gives_suggestions() {
+fn suggest_gives_suggestions() {
     let c = setup_test_cache();
     let res = c.suggest("In", 10);
     assert!(res.is_some());
@@ -166,7 +166,7 @@ fn cache_suggest_gives_suggestions() {
 }
 
 #[test]
-fn cache_suggest_gives_x_suggestions() {
+fn suggest_gives_x_suggestions() {
     let c = setup_test_cache();
     let res = c.suggest("In", 2);
     assert!(res.is_some());
@@ -175,7 +175,7 @@ fn cache_suggest_gives_x_suggestions() {
 }
 
 #[test]
-fn cache_suggest_gives_none() {
+fn suggest_gives_none() {
     let c = setup_test_cache();
     let res = c.suggest("Ink", 10);
     assert!(res.is_none());

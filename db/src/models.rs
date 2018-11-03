@@ -1,28 +1,35 @@
 
 use schema::*;
 
-#[derive(Queryable)]
+#[derive(Queryable, Clone, Debug)]
 pub struct Repository {
     pub id: i32,
     pub name: String,
     pub url: String,
 }
 
-#[derive(Insertable, AsChangeset)]
+#[derive(Insertable, AsChangeset, Debug)]
 #[table_name="repositories"]
 pub struct NewRepository<'a> {
     pub name: &'a str,
     pub url: &'a str,
 }
 
-#[derive(Queryable)]
+#[derive(Queryable, Clone, Debug)]
 pub struct Function {
     pub id: i64,
     pub repo_id: i32,
+    pub name: String,
     pub type_signature: String,
 }
 
-#[derive(Insertable)]
+impl PartialEq for Function {
+    fn eq<'a>(&self, other: &'a Function) -> bool {
+        self.id == other.id
+    }
+}
+
+#[derive(Insertable, Debug)]
 #[table_name="functions"]
 pub struct NewFunction<'a> {
     pub repo_id: i32,

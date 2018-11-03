@@ -14,9 +14,15 @@ extern crate rand;
 extern crate serde_derive;
 extern crate serde_json;
 extern crate serde;
+extern crate radix_trie;
+extern crate parking_lot;
+extern crate fn_search_backend_db;
 
 use rand::random;
 use actix_web::Responder;
+pub mod fn_cache;
+#[cfg(test)]
+mod tests;
 
 lazy_static! {
     static ref SAMPLE_TYPES: Vec<&'static str> = vec![

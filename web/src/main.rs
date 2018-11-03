@@ -1,3 +1,4 @@
+extern crate actix;
 extern crate actix_web;
 use actix_web::{
     server,
@@ -15,12 +16,12 @@ extern crate serde_derive;
 extern crate serde_json;
 extern crate serde;
 extern crate radix_trie;
-extern crate parking_lot;
 extern crate fn_search_backend_db;
 
 use rand::random;
 use actix_web::Responder;
-pub mod fn_cache;
+pub(crate) mod collections;
+pub(crate) mod actors;
 #[cfg(test)]
 mod tests;
 

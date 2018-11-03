@@ -5,6 +5,7 @@ authors = ["Andrew Houts <ahouts4@gmail.com>", "Yuya Yabe <yuyabee@gmail.com>"]
 
 [dependencies]
 actix-web = "0.7"
+actix = "0.7.5"
 lazy_static = "1.1.0"
 rand = "0.5.5"
 fn_search_backend_db = { path = "../db" }
@@ -12,4 +13,3 @@ serde_json = "1.0.32"
 serde_derive = "1.0.80"
 serde = "1.0.80"
 radix_trie = "0.1"
-parking_lot = "0.6.4"

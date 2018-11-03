@@ -1,43 +1,110 @@
 #[macro_use]
 extern crate nom;
-use nom::{multispace, is_space};
 
 #[derive(Debug, PartialEq)]
-struct Elm<'a> {
-  module_name: &'a [u8],
-  exposed: &'a [u8],
+enum ElmExpose<'a> {
+    All,
+    List(Vec<TypeOrFunction<'a>>),
 }
 
-fn is_end_parenthesis(a: u8) -> bool {
-    a == b')'
+type Name<'a> = &'a str;
+type Definition<'a> = &'a str;
+type TypeSignature <'a> = &'a str;
+
+#[derive(Debug, PartialEq)]
+enum TypeOrFunction<'a> {
+    Type(Type<'a>),
+    Function(Function<'a>),
 }
 
-named!(elm_exposed,
-    take_till!(is_end_parenthesis)
+#[derive(Debug, PartialEq)]
+struct Type<'a> {
+    name: Name<'a>,
+    definition: Option<Definition<'a>>,
+}
+
+#[derive(Debug, PartialEq)]
+struct Function<'a> {
+    name: Name<'a>,
+    type_signature: Option<TypeSignature<'a>>,
+}
+
+fn is_space(s: char) -> bool {
+    s == ' '
+}
+
+named!(expose_all<&str, ElmExpose>,
+    map!(tag!(".."), |_| ElmExpose::All)
 );
 
-named!(elm<&[u8], Elm>,
+named!(function<&str, TypeOrFunction>,
+    map!(delimited!(char!(' '), take_till!(is_space), char!(' ')),
+        |s: &str| TypeOrFunction::Function(Function{name: s, type_signature: None})
+    )
+);
+
+named!(type_<&str, TypeOrFunction>,
+    map!(take_till!(is_space),
+        |s: &str| TypeOrFunction::Type(Type{name: s, definition: None})
+    )
+);
+
+named!(expose_functions_and_types<&str, ElmExpose>,
+    map!(separated_nonempty_list!(tag!(","), alt!(function | type_)), ElmExpose::List)
+);
+
+named!(multispaces<&str, &str>,
+    map!(is_a!(" "), |s| s)
+);
+
+named!(elm<&str, ElmExpose>,
     do_parse!(
         tag!("module") >>
-        multispace >>
-        module_name: take_till!(is_space) >>
-        multispace >>
+        multispaces >>
+        take_till!(is_space) >>
+        multispaces >>
         tag!("exposing") >>
-        multispace >>
+        multispaces >>
         char!('(') >>
-        exposed: elm_exposed >>
+        exposed: alt!(expose_all | expose_functions_and_types) >>
         char!(')') >>
-        (Elm{module_name: module_name, exposed: exposed})
+        (exposed)
     )
 );
 
 #[test]
-fn it_works() {
-    let s0 = elm(&b"module Main exposing (..)"[..]);
-    let s1 = elm(&b"module Main exposing (Test0)"[..]);
-    let s2 = elm(&b"module Main exposing (Test0, Test1)"[..]);
+fn expose_all_works() {
+    assert_eq!(
+        elm("module Main exposing (..)"),
+        Ok(("",
+            ElmExpose::All
+        ))
+    );
+}
 
-    assert_eq!(s0, Ok((&b""[..], Elm { module_name: &b"Main"[..], exposed: &b".."[..] })));
-    assert_eq!(s1, Ok((&b""[..], Elm { module_name: &b"Main"[..], exposed: &b"Test0"[..] })));
-    assert_eq!(s2, Ok((&b""[..], Elm { module_name: &b"Main"[..], exposed: &b"Test0, Test1"[..] })));
+#[test]
+fn expose_one_type_works() {
+    assert_eq!(
+        elm("module Main exposing (Test0)"),
+        Ok(("",
+            ElmExpose::List(
+                vec!(TypeOrFunction::Function(Function{name: "Test0", type_signature: None}))
+            )
+        ))
+    );
+}
+
+#[test]
+fn expose_many_types_works() {
+    assert_eq!(
+        elm("module Main exposing ( Test0, Test1 )"),
+        Ok(("",
+            ElmExpose::List(
+                vec!(
+                    TypeOrFunction::Function(Function{name: "Test0", type_signature: None}),
+                    TypeOrFunction::Function(Function{name: "Test1", type_signature: None})
+                )
+            )
+        ))
+    );
 }

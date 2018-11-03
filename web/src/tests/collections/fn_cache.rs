@@ -94,7 +94,7 @@ fn search_gives_value() {
 #[test]
 fn search_gives_none_on_invalid_start() {
     let c = setup_test_cache();
-    let res = c.search("String -> Int", 10, Some(3));
+    let res = c.search("String -> Int", 10, Some(2));
     assert!(res.is_none());
 }
 

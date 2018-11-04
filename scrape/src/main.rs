@@ -10,7 +10,6 @@ extern crate clap;
 extern crate fn_search_backend_db;
 
 pub mod elm_package;
-pub mod elm_parse;
 pub mod repo_cache;
 
 use std::error::Error;

@@ -1,3 +1,15 @@
+//! # fn-search-backend-cache
+//!
+//! Caching the functions found on [packages.elm-lang.org](https://packages.elm-lang.org)
+//! is performed with the following algorithm
+//!
+//! * Download the list of packages on [packages.elm-lang.org](https://packages.elm-lang.org)
+//! * Iterate over each repository in parallel
+//!   * Check if the repository already is cached
+//!     * If yes, spawn a subprocess and run git pull to update the repository
+//!     * If no, spawn a subprocess and run git clone to download the repository
+//!   * Run a Elm parser on the source code to find all exported functions/variables/etc...
+//!   * Insert exported functions and types into the database
 
 extern crate reqwest;
 extern crate serde;

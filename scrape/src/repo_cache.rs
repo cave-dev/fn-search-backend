@@ -1,3 +1,4 @@
+//! A module for caching or updating git repositories.
 
 use elm_package::{ElmPackageMetadataRaw, find_git_url};
 use std::error::Error;
@@ -8,8 +9,9 @@ use std::marker::Send;
 
 pub type GitUrl = String;
 
+/// Configuration options for caching the repositories.
 pub struct RepoCacheOptions {
-    // root path for cache
+    /// root path for cache
     pub cache_path: String,
 }
 
@@ -85,6 +87,9 @@ fn get_repo_path(m: &ElmPackageMetadataRaw, o: &RepoCacheOptions) -> BoxedError<
         })
 }
 
+/// Download or update all packages in an [ElmPackageMetadataRaw](../elm_package/struct.ElmPackageMetadataRaw.html)
+/// # Errors
+/// An error is returned on network error or git error
 pub fn sync_repo(m: &ElmPackageMetadataRaw, o: &RepoCacheOptions) -> BoxedError<Output> {
     let repo_path = get_repo_path(m, o)?;
     let res = if Path::new(repo_path.as_str()).exists() {

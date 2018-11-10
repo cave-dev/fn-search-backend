@@ -2,6 +2,7 @@ table! {
     functions (id) {
         id -> Int8,
         repo_id -> Int4,
+        name -> Text,
         type_signature -> Text,
     }
 }

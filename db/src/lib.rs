@@ -4,7 +4,7 @@
 
 extern crate clap;
 #[macro_use]
-extern crate diesel;
+pub extern crate diesel;
 extern crate fn_search_backend;
 extern crate diesel_migrations;
 

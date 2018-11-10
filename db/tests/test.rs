@@ -1,11 +1,14 @@
+extern crate diesel;
+extern crate fn_search_backend_db;
 
 static RELATIVE_CFG_FILE: &'static str = "../config.toml";
 
-use establish_connection;
-use schema::*;
-use models::*;
+use fn_search_backend_db::{
+    establish_connection,
+    schema::*,
+    models::*
+};
 use diesel::prelude::*;
-use diesel;
 
 #[test]
 fn insert_repo() {

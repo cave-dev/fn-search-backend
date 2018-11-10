@@ -7,11 +7,9 @@ extern crate diesel;
 extern crate fn_search_backend;
 extern crate diesel_migrations;
 
-pub mod schema;
-pub mod models;
-#[cfg(test)]
-mod tests;
-pub mod utils;
+mod schema;
+mod models;
+mod utils;
 
 use utils::{establish_connection, run_migrations};
 

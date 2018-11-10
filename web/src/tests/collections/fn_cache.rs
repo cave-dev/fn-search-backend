@@ -76,8 +76,8 @@ fn search_gives_values() {
     assert!(res.is_some());
     let res = res.unwrap();
     assert_eq!(res.len(), 2);
-    let vec_of_ref: Vec<&Function> = res.iter().collect();
-    assert_eq!(vec_of_ref.as_slice(), &[&TEST_FNS[1], &TEST_FNS[5]]);
+    let res: HashSet<i64> = res.into_iter().map(|v| *v).collect();
+    assert_eq!(res, vec![1, 5].into_iter().collect());
 }
 
 #[test]
@@ -87,8 +87,8 @@ fn search_gives_value() {
     assert!(res.is_some());
     let res = res.unwrap();
     assert_eq!(res.len(), 1);
-    let vec_of_ref: Vec<&Function> = res.iter().collect();
-    assert_eq!(vec_of_ref.as_slice(), &[&TEST_FNS[3]]);
+    let res: HashSet<i64> = res.into_iter().map(|v| *v).collect();
+    assert_eq!(res, vec![3].into_iter().collect());
 }
 
 #[test]
@@ -105,8 +105,8 @@ fn search_gives_some_start_index() {
     assert!(res.is_some());
     let res = res.unwrap();
     assert_eq!(res.len(), 1);
-    let vec_of_ref: Vec<&Function> = res.iter().collect();
-    assert_eq!(vec_of_ref.as_slice(), &[&TEST_FNS[5]]);
+    let res: HashSet<i64> = res.into_iter().map(|v| *v).collect();
+    assert_eq!(res, vec![5].into_iter().collect());
 }
 
 #[test]
@@ -116,8 +116,8 @@ fn search_gives_only_num() {
     assert!(res.is_some());
     let res = res.unwrap();
     assert_eq!(res.len(), 1);
-    let vec_of_ref: Vec<&Function> = res.iter().collect();
-    assert_eq!(vec_of_ref.as_slice(), &[&TEST_FNS[1]]);
+    let res: HashSet<i64> = res.into_iter().map(|v| *v).collect();
+    assert_eq!(res, vec![1].into_iter().collect());
 }
 
 #[test]
@@ -127,8 +127,8 @@ fn search_gives_only_num_with_start() {
     assert!(res.is_some());
     let res = res.unwrap();
     assert_eq!(res.len(), 1);
-    let vec_of_ref: Vec<&Function> = res.iter().collect();
-    assert_eq!(vec_of_ref.as_slice(), &[&TEST_FNS[5]]);
+    let res: HashSet<i64> = res.into_iter().map(|v| *v).collect();
+    assert_eq!(res, vec![5].into_iter().collect());
 }
 
 #[test]

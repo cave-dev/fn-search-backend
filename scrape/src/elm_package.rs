@@ -1,11 +1,25 @@
 //! A module for downloading & finding repository urls for packages
 //! from [package.elm-lang.org](https://package.elm-lang.org).
+//!
+//! For example, if we wanted to iterate over all elm library url's we could
+//! do something like this:
+//!
+//! ```
+//! get_elm_libs()?
+//!     .into_iter()
+//!     .map(|r| find_git_url(&r))
+//!     .for_each(|url| {
+//!         // do something with each url
+//!     });
+//! ```
+//!
 
 use std::error::Error;
 use serde_json::from_str;
 use serde::de::IgnoredAny;
-use repo_cache::GitUrl;
-use fn_search_backend_db::models::NewRepository;
+
+/// URL to a git repository
+pub type GitUrl = String;
 
 const PACKAGES_SEARCH_URL: &'static str = "https://package.elm-lang.org/search.json";
 
@@ -29,7 +43,6 @@ pub struct ElmPackageMetadataRaw {
     license: IgnoredAny,
     versions: IgnoredAny,
 }
-
 
 type ElmPackageMetadataListRaw = Vec<ElmPackageMetadataRaw>;
 

@@ -6,8 +6,7 @@ use std::process::{Command, Output};
 use std::path::Path;
 use std::fmt;
 use std::marker::Send;
-
-pub type GitUrl = String;
+use elm_package::GitUrl;
 
 /// Configuration options for caching the repositories.
 pub struct RepoCacheOptions {
@@ -15,6 +14,7 @@ pub struct RepoCacheOptions {
     pub cache_path: String,
 }
 
+// Error indicating the repository is invalid
 #[derive(Debug)]
 struct InvalidRepoError {
     details: String,
@@ -44,6 +44,7 @@ impl Error for InvalidRepoError {
     }
 }
 
+// Error indicating there was an error while git was running
 #[derive(Debug)]
 struct GitError {
     details: String,
@@ -75,6 +76,7 @@ impl Error for GitError {
 
 type BoxedError<T> = Result<T, Box<Error + Send>>;
 
+// find the path to the git repo in the cache on the filesystem
 fn get_repo_path(m: &ElmPackageMetadataRaw, o: &RepoCacheOptions) -> BoxedError<String> {
     Path::new(o.cache_path.as_str())
         .join(Path::new(m.name.as_str()))
@@ -90,6 +92,18 @@ fn get_repo_path(m: &ElmPackageMetadataRaw, o: &RepoCacheOptions) -> BoxedError<
 /// Download or update all packages in an [ElmPackageMetadataRaw](../elm_package/struct.ElmPackageMetadataRaw.html)
 /// # Errors
 /// An error is returned on network error or git error
+/// # Example
+/// ```ignore
+/// use fn_search_backend_scrape::elm_package::get_elm_libs;
+///
+/// let options = RepoCacheOptions{cache_path: String::from("/path/to/cache")}
+/// let res = get_elm_libs()?
+///     .into_iter()
+///     .map(|pkg| {
+///         sync_repo(&pkg, &options)
+///     });
+/// // Potentially do something with the results/errors
+/// ```
 pub fn sync_repo(m: &ElmPackageMetadataRaw, o: &RepoCacheOptions) -> BoxedError<Output> {
     let repo_path = get_repo_path(m, o)?;
     let res = if Path::new(repo_path.as_str()).exists() {

@@ -1,6 +1,7 @@
 
 use radix_trie::{Trie, TrieCommon};
 use std::iter::{FromIterator};
+use fn_search_backend_db::models::Function;
 
 pub struct FnCache {
     trie: Trie<String, Vec<i64>>,
@@ -80,6 +81,26 @@ impl<'a> FromIterator<(&'a str, i64)> for FnCache {
         let mut c = FnCache::new();
         for f in fns {
             c.insert(f.0, f.1);
+        }
+        c
+    }
+}
+
+impl FromIterator<Function> for FnCache {
+    fn from_iter<T: IntoIterator<Item=Function>>(fns: T) -> Self {
+        let mut c = FnCache::new();
+        for f in fns {
+            c.insert(f.type_signature.as_str(), f.id);
+        }
+        c
+    }
+}
+
+impl<'a> FromIterator<&'a Function> for FnCache {
+    fn from_iter<T: IntoIterator<Item=&'a Function>>(fns: T) -> Self {
+        let mut c = FnCache::new();
+        for f in fns {
+            c.insert(f.type_signature.as_str(), f.id);
         }
         c
     }

@@ -29,7 +29,8 @@ fn main() -> Result<(), Box<Error>> {
     ).get_matches();
 
     let cfg_file = matches.value_of("CONFIG").expect("error parsing configuration file");
-    let cfg = get_config(cfg_file)?;
+    let cfg = get_config(cfg_file)
+        .expect("error getting configuration file");
     let conn = PgConnection::establish(&get_db_url(&cfg.db)).map_err(|e| {
         println!("error while running migrations: {}", e);
         ()

@@ -23,6 +23,8 @@ extern crate fn_search_backend_db;
 extern crate r2d2;
 extern crate r2d2_diesel;
 extern crate parking_lot;
+#[macro_use]
+extern crate lazy_static;
 
 pub(crate) mod collections;
 pub(crate) mod app_state;

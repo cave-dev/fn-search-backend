@@ -1,45 +1,20 @@
 #[macro_use]
 extern crate nom;
 
-#[derive(Debug, PartialEq)]
-enum ElmModule<'a> {
-    All,
-    List(Vec<TypeOrFunction<'a>>),
-}
+mod helpers;
+use helpers::{
+    is_alphanumeric,
+    is_space_or_newline,
+    is_space_or_newline_or_comma
+};
 
-type Name<'a> = &'a str;
-type Definition<'a> = &'a str;
-type TypeSignature <'a> = &'a str;
-
-#[derive(Debug, PartialEq)]
-enum TypeOrFunction<'a> {
-    Type(Type<'a>),
-    Function(Function<'a>),
-}
-
-#[derive(Debug, PartialEq)]
-struct Type<'a> {
-    name: Name<'a>,
-    definition: Option<Definition<'a>>,
-}
-
-#[derive(Debug, PartialEq)]
-struct Function<'a> {
-    name: Name<'a>,
-    type_signature: Option<TypeSignature<'a>>,
-}
-
-fn is_space_or_newline(c: char) -> bool {
-    c.is_whitespace() || c == '\n'
-}
-
-fn is_alphanumeric(c: char) -> bool {
-    c.is_alphanumeric()
-}
-
-fn is_space_or_newline_or_comma(c: char) -> bool {
-    is_space_or_newline(c) || c == ','
-}
+mod structs;
+use structs::{
+    ElmModule,
+    TypeOrFunction,
+    Type,
+    Function,
+};
 
 named!(expose_all<&str, ElmModule>,
     map!(tag!(".."), |_| ElmModule::All)
@@ -128,25 +103,6 @@ mod tests {
                     )
                 )
             ))
-        );
-    }
-
-    #[test]
-    fn test_my_expectations() {
-        // named!(f<&str, TypeOrFunction>, alt!(function | type_));
-        // named!(g<&[u8], Vec<&[u8]>>, separated_list!(tag!(","), is_not!("")));
-
-        // assert_eq!(
-            // g(&b"(Test0)"[..]),
-            // Ok((&b""[..], vec!()))
-        // );
-
-        named!(s<&str, &str>, ws!(take_while!(is_alphanumeric)));
-
-        assert_eq!(
-            s(" Test0\0"),
-            // Ok(("", ElmModule::All))
-            Ok(("\u{0}", "Test0"))
         );
     }
 

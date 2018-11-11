@@ -4,12 +4,15 @@
 
 extern crate clap;
 #[macro_use]
-extern crate diesel;
+pub extern crate diesel;
 extern crate fn_search_backend;
 extern crate diesel_migrations;
+extern crate serde;
+#[macro_use]
+extern crate serde_derive;
 
 pub mod schema;
 pub mod models;
 pub mod utils;
 
-pub use utils::{establish_connection, run_migrations};
+pub use utils::{get_db_url, run_migrations};

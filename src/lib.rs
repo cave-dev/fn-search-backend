@@ -1,5 +1,3 @@
-
-
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
@@ -26,7 +24,7 @@ pub struct Config {
     pub db: DbConfig,
 }
 
-pub fn get_config(f: &str) -> Result<Config, Box<Error>> {
+pub fn get_config(f: &str) -> Result<Config, Box<Error + Sync + Send>> {
     let mut f= File::open(f)?;
     let mut s = String::new();
     f.read_to_string(&mut s)?;

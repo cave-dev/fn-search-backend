@@ -1,9 +1,6 @@
 #[macro_use]
 extern crate nom;
 
-use nom::types::CompleteStr;
-use nom::eof;
-
 #[derive(Debug, PartialEq)]
 enum ElmModule<'a> {
     All,
@@ -142,12 +139,6 @@ mod tests {
         // assert_eq!(
             // g(&b"(Test0)"[..]),
             // Ok((&b""[..], vec!()))
-        // );
-
-        // assert_eq!(
-            // function("Test0"),
-            // // Ok(("", ElmModule::All))
-            // Ok(("", TypeOrFunction::Function( Function{name: "Test0", type_signature: None})))
         // );
 
         named!(s<&str, &str>, ws!(take_while!(is_alphanumeric)));

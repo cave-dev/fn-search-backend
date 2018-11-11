@@ -23,6 +23,7 @@ pub struct DbConfig {
 pub struct WebConfig {
     pub allowed_origin: String,
     pub bind_address: String,
+    pub db_pool_size: u32,
 }
 
 #[derive(Deserialize)]

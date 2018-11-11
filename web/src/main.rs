@@ -1,17 +1,5 @@
 extern crate actix;
 extern crate actix_web;
-use actix_web::{
-    server,
-    App,
-    HttpRequest,
-    Result,
-    Error,
-    middleware::cors::Cors,
-    error::{
-        ErrorInternalServerError,
-    },
-    middleware::Logger,
-};
 #[macro_use]
 extern crate clap;
 #[macro_use]
@@ -34,6 +22,18 @@ pub(crate) mod queries;
 #[cfg(test)]
 mod tests;
 
+use actix_web::{
+    server,
+    App,
+    HttpRequest,
+    Result,
+    Error,
+    middleware::cors::Cors,
+    error::{
+        ErrorInternalServerError,
+    },
+    middleware::Logger,
+};
 use actix_web::Responder;
 use app_state::{AppState};
 use fn_search_backend_db::utils::get_db_url;
@@ -72,8 +72,10 @@ fn suggest(req: &HttpRequest<AppState>) -> Result<impl Responder> {
 }
 
 fn update_fns(req: &HttpRequest<AppState>) -> Result<impl Responder> {
-    let conn = req.state().db_conn().map_err(|e| ErrorInternalServerError(e))?;
-    let sigs = get_all_func_sigs(&(*conn)).map_err(|e| ErrorInternalServerError(e))?;
+    let sigs = {
+        let conn = req.state().db_conn().map_err(|e| ErrorInternalServerError(e))?;
+        get_all_func_sigs(&(*conn)).map_err(|e| ErrorInternalServerError(e))?
+    }; // database connection goes out of scope, returning to pool
     let fn_cache: FnCache = sigs.into_iter().collect();
     req.state().update_fn_cache(fn_cache);
     Ok("OK")
@@ -103,20 +105,20 @@ fn main() {
 
     let cfg_file = matches.value_of("CONFIG").expect("error parsing configuration file");
     let cfg = get_config(&cfg_file).expect("error loading configuration file");
-    let cfg_arc = Arc::new(cfg);
+    let cfg = Arc::new(cfg);
 
     let pool = Pool::builder()
-        .max_size(15)
-        .build(ConnectionManager::new(get_db_url(&cfg_arc.clone().db))).expect("error setting up database connection");
+        .max_size(cfg.web.db_pool_size)
+        .build(ConnectionManager::new(get_db_url(&cfg.clone().db))).expect("error setting up database connection");
 
     let fn_cache = make_fn_cache(&*pool.get().expect("error connecting to database"));
     let cache = Arc::new(fn_cache.expect("error retrieving function type signatures"));
 
-    let cfg_clone = cfg_arc.clone();
+    let cfg_clone = cfg.clone();
     server::new(move || App::with_state(AppState::new(pool.clone(), cache.clone()))
         .configure(|app| {
             Cors::for_app(app)
-                .allowed_origin(&cfg_arc.web.allowed_origin)
+                .allowed_origin(&cfg.web.allowed_origin)
                 .resource("/search/{type_signature}", |r| r.f(search))
                 .resource("/suggest/{type_signature}", |r| r.f(search))
                 .resource("/update_functions", |r| r.f(update_fns))

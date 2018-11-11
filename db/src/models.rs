@@ -1,7 +1,6 @@
-
 use schema::*;
 
-#[derive(Queryable, Clone, Debug)]
+#[derive(Queryable, Clone, Debug, Serialize, Deserialize)]
 pub struct Repository {
     pub id: i32,
     pub name: String,
@@ -15,7 +14,7 @@ pub struct NewRepository<'a> {
     pub url: &'a str,
 }
 
-#[derive(Queryable, Clone, Debug)]
+#[derive(Queryable, Clone, Debug, Serialize, Deserialize)]
 pub struct Function {
     pub id: i64,
     pub repo_id: i32,

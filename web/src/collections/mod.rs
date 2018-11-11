@@ -1,2 +1,4 @@
 
-pub mod fn_cache;
+mod fn_cache;
+
+pub use collections::fn_cache::FnCache;

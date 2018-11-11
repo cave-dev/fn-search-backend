@@ -1,4 +1,3 @@
-
 use collections::fn_cache::FnCache;
 use fn_search_backend_db::models::Function;
 use std::collections::HashSet;

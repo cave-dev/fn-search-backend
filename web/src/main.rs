@@ -5,154 +5,82 @@ use actix_web::{
     App,
     HttpRequest,
     Result,
+    Error,
     middleware::cors::Cors,
+    error::{
+        ErrorInternalServerError,
+    }
 };
-
 #[macro_use]
-extern crate lazy_static;
-extern crate rand;
+extern crate clap;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde_json;
 extern crate serde;
 extern crate radix_trie;
+extern crate fn_search_backend;
 extern crate fn_search_backend_db;
-
-use rand::random;
-use actix_web::Responder;
+extern crate r2d2;
+extern crate r2d2_diesel;
+extern crate parking_lot;
 
 pub(crate) mod collections;
-pub(crate) mod actors;
+pub(crate) mod app_state;
+pub(crate) mod queries;
 #[cfg(test)]
 mod tests;
 
-lazy_static! {
-    static ref SAMPLE_TYPES: Vec<&'static str> = vec![
-        "String",
-        "Int",
-        "Bool",
-        "List",
-        "Time"
-    ];
-    static ref SAMPLE_SITES: Vec<&'static str> = vec![
-        "https://github.com/",
-        "https://bitbucket.com/",
-        "https://gitlab.com/"
-    ];
-    static ref SAMPLE_USERS: Vec<&'static str> = vec![
-        "bubby",
-        "ffrancis",
-        "captain_oblivious",
-        "xXx_fortnitememes_xXx",
-        "koopa",
-        "derpington",
-        "pecan"
-    ];
-    static ref SAMPLE_REPO_NAMES: Vec<&'static str> = vec![
-        "awesomefifo",
-        "epic_javascript_library",
-        "NoJs",
-        "pls",
-        "AlT-cAsE-oNlY-cAsE",
-        "derp"
-    ];
-    static ref SAMPLE_FUNCTION_NAMES: Vec<&'static str> = vec![
-        "test_fn",
-        "bogosort",
-        "derpyfunc",
-        "dothings",
-        "FUnCtiOn_stUUUF"
-    ];
+use actix_web::Responder;
+use app_state::{AppState};
+use fn_search_backend_db::utils::get_db_url;
+use fn_search_backend::get_config;
+use r2d2::Pool;
+use r2d2_diesel::ConnectionManager;
+use queries::make_fn_cache;
+use std::sync::Arc;
+use collections::FnCache;
+use queries::functions::*;
+
+fn search(req: &HttpRequest<AppState>) -> Result<impl Responder> {
+    let sig: String = req.match_info().query("type_signature")?;
+    let cache: Arc<FnCache> = req.state().get_fn_cache();
+    let conn = req.state().db_conn().map_err(|e| ErrorInternalServerError(e))?;
+    let res = (*cache).search(sig.as_str(), 10, None);
+    Ok(match res {
+        Some(ids) => {
+            let funcs = get_functions(&conn, ids).map_err(|e| ErrorInternalServerError(e))?;
+            serde_json::to_string(funcs.as_slice()).map_err(|e| ErrorInternalServerError(e))?
+        },
+        None => String::from("[]"),
+    })
 }
 
-static MAX_SAMPLE_TYPES: usize = 10;
-static MAX_NUMBER_RESULTS: usize = 10;
+fn main() -> Result<(), Error> {
+    let matches = clap_app!(fn_search_backend_web =>
+        (version: crate_version!())
+        (author: crate_authors!())
+        (about: crate_description!())
+        (@arg CONFIG: -c --config +takes_value +required "configuration file")
+    ).get_matches();
 
-#[derive(Serialize, Deserialize, Debug)]
-struct SearchResultRepo {
-    name: String,
-    url: String,
-}
+    let cfg_file = matches.value_of("CONFIG").expect("error parsing configuration file");
+    let cfg = get_config(&cfg_file).map_err(|e| ErrorInternalServerError(e))?;
 
-#[derive(Serialize, Deserialize, Debug)]
-struct SearchResultFn {
-    name: String,
-    desc: String,
-    args: Vec<String>,
-    ret: String,
-}
+    let pool = Pool::builder()
+        .max_size(15)
+        .build(ConnectionManager::new(get_db_url(&cfg.db))).map_err(|e| ErrorInternalServerError(e))?;
 
-#[derive(Serialize, Deserialize, Debug)]
-struct SearchResult {
-    repo: SearchResultRepo,
-    res: SearchResultFn,
-}
+    let cache = Arc::new(make_fn_cache(&*pool.get().map_err(|e| ErrorInternalServerError(e))?).map_err(|e| ErrorInternalServerError(e))?);
 
-#[derive(Serialize, Deserialize, Debug)]
-struct SearchResultWrapper {
-    data: Vec<SearchResult>,
-}
-
-fn gen_repo_url() -> (String, String) {
-    let mut res = String::new();
-    let url_index: usize = random::<usize>() % SAMPLE_SITES.len();
-    res.push_str(SAMPLE_SITES[url_index]);
-    let user_index: usize = random::<usize>() % SAMPLE_USERS.len();
-    res.push_str(SAMPLE_USERS[user_index]);
-    res.push('/');
-    let repo_index: usize = random::<usize>() % SAMPLE_REPO_NAMES.len();
-    res.push_str(SAMPLE_REPO_NAMES[repo_index]);
-    (String::from(SAMPLE_REPO_NAMES[repo_index]), res)
-}
-
-fn gen_rand_search_result() -> String {
-    let mut results: Vec<SearchResult> = Vec::new();
-    let num_results: usize = random::<usize>() % MAX_NUMBER_RESULTS;
-    for _ in 0..num_results {
-        let mut types: Vec<String> = Vec::new();
-        let num_types: usize = random::<usize>() % MAX_SAMPLE_TYPES;
-        for _ in 0..num_types {
-            let type_index: usize = random::<usize>() % SAMPLE_TYPES.len();
-            types.push(String::from(SAMPLE_TYPES[type_index]));
-        }
-        let type_index: usize = random::<usize>() % SAMPLE_TYPES.len();
-        let fn_index: usize = random::<usize>() % SAMPLE_FUNCTION_NAMES.len();
-        let res_fn = SearchResultFn{
-            name: String::from(SAMPLE_FUNCTION_NAMES[fn_index]),
-            desc: String::from(SAMPLE_FUNCTION_NAMES[fn_index]),
-            args: types,
-            ret: String::from(SAMPLE_TYPES[type_index]),
-        };
-        let (repo_name, repo_url) = gen_repo_url();
-        let res_repo = SearchResultRepo{
-            name: repo_name,
-            url: repo_url,
-        };
-        results.push(SearchResult{
-            repo: res_repo,
-            res: res_fn,
-        })
-    }
-    let res_wrapper = SearchResultWrapper{
-        data: results,
-    };
-    serde_json::to_string(&res_wrapper).unwrap()
-}
-
-fn index(req: &HttpRequest) -> Result<impl Responder> {
-    let _: String = req.match_info().query("type_signature")?;
-    Ok(gen_rand_search_result())
-}
-
-fn main() {
-    server::new(move || App::new()
-                .configure(|app| {
-                    Cors::for_app(app)
-                        .allowed_origin("http://localhost:8080")
-                        .resource("/search/{type_signature}", |r| r.f(index))
-                        .register()
-    }))
+    server::new(move || App::with_state(AppState::new(pool.clone(), cache.clone()))
+        .configure(|app| {
+            Cors::for_app(app)
+                .allowed_origin("http://localhost:8080")
+                .resource("/search/{type_signature}", |r| r.f(search))
+                .register()
+        }))
         .bind("127.0.0.1:8000")
         .unwrap()
         .run();
+    Ok(())
 }

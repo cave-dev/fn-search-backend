@@ -1,18 +1,27 @@
 extern crate diesel;
+extern crate fn_search_backend;
 extern crate fn_search_backend_db;
 
 static RELATIVE_CFG_FILE: &'static str = "../config.toml";
 
 use fn_search_backend_db::{
-    establish_connection,
+    get_db_url,
     schema::*,
-    models::*
+    models::*,
 };
+use diesel::pg::PgConnection;
+use fn_search_backend::get_config;
 use diesel::prelude::*;
+use std::error::Error;
+
+type BResult<T> = Result<T, Box<Error>>;
 
 #[test]
 fn insert_repo() {
-    let connection = establish_connection(RELATIVE_CFG_FILE)
+    let cfg = get_config(RELATIVE_CFG_FILE)
+        .expect("error finding configuration file");
+    let db_url = get_db_url(&cfg.db);
+    let connection = PgConnection::establish(db_url.as_str())
         .expect("error establishing connection to db");
     let new_repo = NewRepository{
         name: "cave-dev/fn-search-backend",
@@ -31,7 +40,10 @@ fn insert_repo() {
 
 #[test]
 fn test_db() {
-    let connection = establish_connection(RELATIVE_CFG_FILE)
+    let cfg = get_config(RELATIVE_CFG_FILE)
+        .expect("error finding configuration file");
+    let db_url = get_db_url(&cfg.db);
+    let connection = PgConnection::establish(db_url.as_str())
         .expect("error establishing connection to db");
     let results = repositories::table
         .limit(5)

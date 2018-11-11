@@ -2,8 +2,6 @@ extern crate actix;
 extern crate actix_web;
 #[macro_use]
 extern crate clap;
-#[macro_use]
-extern crate serde_derive;
 extern crate serde_json;
 extern crate serde;
 extern crate radix_trie;
@@ -12,9 +10,15 @@ extern crate fn_search_backend_db;
 extern crate r2d2;
 extern crate r2d2_diesel;
 extern crate parking_lot;
+extern crate env_logger;
 #[macro_use]
 extern crate lazy_static;
-extern crate env_logger;
+
+// use jemallocator as our allocator
+extern crate jemallocator;
+use jemallocator::Jemalloc;
+#[global_allocator]
+static GLOBAL: Jemalloc = Jemalloc;
 
 pub(crate) mod collections;
 pub(crate) mod app_state;
@@ -27,7 +31,6 @@ use actix_web::{
     App,
     HttpRequest,
     Result,
-    Error,
     middleware::cors::Cors,
     error::{
         ErrorInternalServerError,
@@ -120,7 +123,7 @@ fn main() {
             Cors::for_app(app)
                 .allowed_origin(&cfg.web.allowed_origin)
                 .resource("/search/{type_signature}", |r| r.f(search))
-                .resource("/suggest/{type_signature}", |r| r.f(search))
+                .resource("/suggest/{type_signature}", |r| r.f(suggest))
                 .resource("/update_functions", |r| r.f(update_fns))
                 .register()
                 .middleware(Logger::default())

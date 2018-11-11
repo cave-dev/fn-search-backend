@@ -20,8 +20,15 @@ pub struct DbConfig {
 }
 
 #[derive(Deserialize)]
+pub struct WebConfig {
+    pub allowed_origin: String,
+    pub bind_address: String,
+}
+
+#[derive(Deserialize)]
 pub struct Config {
     pub db: DbConfig,
+    pub web: WebConfig,
 }
 
 pub fn get_config(f: &str) -> Result<Config, Box<Error + Sync + Send>> {

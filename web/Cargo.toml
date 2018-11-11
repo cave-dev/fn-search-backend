@@ -17,6 +17,7 @@ r2d2 = "0.8.3"
 r2d2-diesel = "1.0.0"
 parking_lot = "0.6.4"
 clap = "2.32.0"
+env_logger = "0.5.13"
 
 [dev-dependencies]
 lazy_static = "1.2.0"

@@ -1,12 +1,12 @@
 //! A module for caching or updating git repositories.
 
-use crate::elm_package::{ElmPackageMetadataRaw, find_git_url};
+use crate::elm_package::GitUrl;
+use crate::elm_package::{find_git_url, ElmPackageMetadataRaw};
 use std::error::Error;
-use std::process::{Command, Output};
-use std::path::Path;
 use std::fmt;
 use std::marker::Send;
-use crate::elm_package::GitUrl;
+use std::path::Path;
+use std::process::{Command, Output};
 
 /// Configuration options for caching the repositories.
 pub struct RepoCacheOptions {
@@ -22,9 +22,7 @@ struct InvalidRepoError {
 
 impl InvalidRepoError {
     fn new(desc: String) -> Self {
-        InvalidRepoError{
-            details: desc,
-        }
+        InvalidRepoError { details: desc }
     }
 
     fn build(desc: String) -> Box<Self> {
@@ -52,9 +50,7 @@ struct GitError {
 
 impl GitError {
     fn new(desc: String) -> Self {
-        GitError{
-            details: desc,
-        }
+        GitError { details: desc }
     }
 
     fn build(desc: String) -> Box<Self> {
@@ -84,9 +80,7 @@ fn get_repo_path(m: &ElmPackageMetadataRaw, o: &RepoCacheOptions) -> BoxedError<
         .ok_or_else(|| -> Box<Error + Send> {
             InvalidRepoError::build(format!("invalid path for repo {}", m.name))
         })
-        .map(|s| {
-            String::from(s)
-        })
+        .map(|s| String::from(s))
 }
 
 /// Download or update all packages in an [ElmPackageMetadataRaw](../elm_package/struct.ElmPackageMetadataRaw.html)
@@ -123,16 +117,12 @@ fn clone_repo(git_url: &GitUrl, repo_path: &str) -> BoxedError<Output> {
         .env("GIT_TERMINAL_PROMPT", "0")
         .args(&["clone", "--depth", "1", git_url, repo_path])
         .output()
-        .map_err(|e| -> Box<Error + Send> {
-            Box::new(e)
-        })
+        .map_err(|e| -> Box<Error + Send> { Box::new(e) })
 }
 
 fn update_repo(repo_path: &str) -> BoxedError<Output> {
     Command::new("git")
         .args(&["-C", repo_path, "pull", "--depth", "1"])
         .output()
-        .map_err(|e| -> Box<Error + Send> {
-            Box::new(e)
-        })
+        .map_err(|e| -> Box<Error + Send> { Box::new(e) })
 }

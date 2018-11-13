@@ -16,37 +16,37 @@ fn build_cache_for_fn() {
 
 lazy_static! {
     static ref TEST_FNS: [Function; 6] = [
-        Function{
+        Function {
             id: 0,
             repo_id: 0,
             name: String::from("derpyfn"),
             type_signature: String::from("Int -> Int"),
         },
-        Function{
+        Function {
             id: 1,
             repo_id: 0,
             name: String::from("whatever"),
             type_signature: String::from("String -> Int"),
         },
-        Function{
+        Function {
             id: 2,
             repo_id: 1,
             name: String::from("lol"),
             type_signature: String::from("Int -> Bool"),
         },
-        Function{
+        Function {
             id: 3,
             repo_id: 1,
             name: String::from("zxc"),
             type_signature: String::from("Bool -> Bool"),
         },
-        Function{
+        Function {
             id: 4,
             repo_id: 1,
             name: String::from("fef"),
             type_signature: String::from("Int -> String"),
         },
-        Function{
+        Function {
             id: 5,
             repo_id: 0,
             name: String::from("rer"),
@@ -156,11 +156,9 @@ fn suggest_gives_suggestions() {
     assert_eq!(res.len(), 3);
     println!("{:?}", res);
     let sig_map: HashSet<&str> = res.into_iter().collect();
-    let expected: HashSet<&str> = vec![
-        "Int -> String",
-        "Int -> Bool",
-        "Int -> Int"
-    ].into_iter().collect();
+    let expected: HashSet<&str> = vec!["Int -> String", "Int -> Bool", "Int -> Int"]
+        .into_iter()
+        .collect();
     assert_eq!(sig_map, expected);
 }
 

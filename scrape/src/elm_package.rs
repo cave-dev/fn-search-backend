@@ -14,9 +14,9 @@
 //! ```
 //!
 
-use std::error::Error;
-use serde_json::from_str;
 use serde::de::IgnoredAny;
+use serde_json::from_str;
+use std::error::Error;
 
 /// URL to a git repository
 pub type GitUrl = String;
@@ -29,9 +29,7 @@ const PACKAGES_SEARCH_URL: &'static str = "https://package.elm-lang.org/search.j
 /// [package.elm-lang.org](https://package.elm-lang.org) was not in the expected format.
 pub fn get_elm_libs() -> Result<ElmPackageMetadataListRaw, Box<Error>> {
     Ok(from_str::<ElmPackageMetadataListRaw>(
-        reqwest::get(PACKAGES_SEARCH_URL)?
-            .text()?
-            .as_str()
+        reqwest::get(PACKAGES_SEARCH_URL)?.text()?.as_str(),
     )?)
 }
 

@@ -1,8 +1,5 @@
 use crate::collections::FnCache;
-use fn_search_backend_db::diesel::{
-    pg::PgConnection,
-    result::QueryResult,
-};
+use fn_search_backend_db::diesel::{pg::PgConnection, result::QueryResult};
 
 pub mod functions;
 

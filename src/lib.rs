@@ -4,9 +4,9 @@ extern crate serde_derive;
 #[cfg(test)]
 mod tests;
 
+use std::error::Error;
 use std::fs::File;
 use std::io::prelude::*;
-use std::error::Error;
 
 #[derive(Deserialize)]
 pub struct DbConfig {
@@ -31,7 +31,7 @@ pub struct Config {
 }
 
 pub fn get_config(f: &str) -> Result<Config, Box<Error + Sync + Send>> {
-    let mut f= File::open(f)?;
+    let mut f = File::open(f)?;
     let mut s = String::new();
     f.read_to_string(&mut s)?;
     let x = toml::from_str(s.as_mut_str())?;

@@ -1,16 +1,5 @@
-extern crate actix;
-extern crate actix_web;
 #[macro_use]
 extern crate clap;
-extern crate serde_json;
-extern crate serde;
-extern crate radix_trie;
-extern crate fn_search_backend;
-extern crate fn_search_backend_db;
-extern crate r2d2;
-extern crate r2d2_diesel;
-extern crate parking_lot;
-extern crate env_logger;
 #[macro_use]
 extern crate lazy_static;
 

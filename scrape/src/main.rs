@@ -11,15 +11,10 @@
 //!   * Run a Elm parser on the source code to find all exported functions/variables/etc...
 //!   * Insert exported functions and types into the database
 
-extern crate reqwest;
-extern crate serde;
 #[macro_use]
 extern crate serde_derive;
-extern crate serde_json;
-extern crate rayon;
 #[macro_use]
 extern crate clap;
-extern crate fn_search_backend_db;
 
 pub mod elm_package;
 pub mod repo_cache;

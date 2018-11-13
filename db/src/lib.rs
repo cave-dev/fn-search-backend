@@ -15,4 +15,4 @@ pub mod schema;
 pub mod models;
 pub mod utils;
 
-pub use utils::{get_db_url, run_migrations};
+pub use crate::utils::{get_db_url, run_migrations};

@@ -1,5 +1,5 @@
 
-use get_config;
+use crate::get_config;
 
 static RELATIVE_CFG_FILE: &'static str = "./config.toml";
 

@@ -1,12 +1,12 @@
 //! A module for caching or updating git repositories.
 
-use elm_package::{ElmPackageMetadataRaw, find_git_url};
+use crate::elm_package::{ElmPackageMetadataRaw, find_git_url};
 use std::error::Error;
 use std::process::{Command, Output};
 use std::path::Path;
 use std::fmt;
 use std::marker::Send;
-use elm_package::GitUrl;
+use crate::elm_package::GitUrl;
 
 /// Configuration options for caching the repositories.
 pub struct RepoCacheOptions {

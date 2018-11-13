@@ -1,4 +1,4 @@
-use schema::*;
+use crate::schema::*;
 
 #[derive(Queryable, Clone, Debug, Serialize, Deserialize)]
 pub struct Repository {

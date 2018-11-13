@@ -26,9 +26,9 @@ pub mod repo_cache;
 
 use std::error::Error;
 use rayon::prelude::*;
-use repo_cache::{sync_repo, RepoCacheOptions};
+use crate::repo_cache::{sync_repo, RepoCacheOptions};
 use std::io::{stderr, Write};
-use elm_package::ElmPackageMetadataRaw;
+use crate::elm_package::ElmPackageMetadataRaw;
 
 fn main() -> Result<(), Box<Error>> {
     let matches = clap_app!(myapp =>

@@ -38,15 +38,15 @@ use actix_web::{
     middleware::Logger,
 };
 use actix_web::Responder;
-use app_state::{AppState};
+use crate::app_state::{AppState};
 use fn_search_backend_db::utils::get_db_url;
 use fn_search_backend::get_config;
 use r2d2::Pool;
 use r2d2_diesel::ConnectionManager;
-use queries::make_fn_cache;
+use crate::queries::make_fn_cache;
 use std::sync::Arc;
-use collections::FnCache;
-use queries::functions::*;
+use crate::collections::FnCache;
+use crate::queries::functions::*;
 
 fn search(req: &HttpRequest<AppState>) -> Result<impl Responder> {
     let sig: String = req.match_info().query("type_signature")?;

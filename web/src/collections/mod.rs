@@ -1,4 +1,4 @@
 
 mod fn_cache;
 
-pub use collections::fn_cache::FnCache;
+pub use crate::collections::fn_cache::FnCache;

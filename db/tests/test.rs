@@ -14,8 +14,6 @@ use fn_search_backend::get_config;
 use diesel::prelude::*;
 use std::error::Error;
 
-type BResult<T> = Result<T, Box<Error>>;
-
 #[test]
 fn insert_repo() {
     let cfg = get_config(RELATIVE_CFG_FILE)

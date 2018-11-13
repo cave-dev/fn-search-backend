@@ -2,7 +2,7 @@ use actix_web::*;
 use fn_search_backend_db::diesel::pg::PgConnection;
 use r2d2::{Pool, PooledConnection};
 use r2d2_diesel::ConnectionManager;
-use collections::FnCache;
+use crate::collections::FnCache;
 use parking_lot::RwLock;
 use std::sync::Arc;
 use r2d2::Error as R2D2Error;

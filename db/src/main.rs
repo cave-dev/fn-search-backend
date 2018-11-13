@@ -16,7 +16,7 @@ pub mod utils;
 
 use diesel::pg::PgConnection;
 use diesel::Connection;
-use utils::{get_db_url, run_migrations};
+use crate::utils::{get_db_url, run_migrations};
 use std::error::Error;
 use fn_search_backend::get_config;
 

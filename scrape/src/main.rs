@@ -21,8 +21,8 @@ extern crate clap;
 pub mod elm_package;
 pub mod repo_cache;
 
-use crate::elm_package::ElmPackageMetadataRaw;
-use crate::repo_cache::{sync_repo, RepoCacheOptions};
+use crate::elm_package::{ElmPackageMetadataRaw, Error as ElmPackageError};
+use crate::repo_cache::{sync_repo, Error as RepoCacheError, RepoCacheOptions};
 use clap::clap_app;
 use rayon::prelude::*;
 use std::error::Error;
@@ -56,10 +56,19 @@ fn main() -> Result<(), Box<Error>> {
                 println!("cloned or updated repo {}", r.0.name);
                 None
             }
-            Err(_) => Some(r.0),
+            Err(e) => {
+                if let RepoCacheError::FindGitUrlError(ref e) = &e {
+                    if let ElmPackageError::CantFindUrl(_) = e {
+                        // chrome doesn't finish downloading the page sometimes, try again
+                        return Some(r.0);
+                    }
+                }
+                eprintln!("{}", e);
+                None
+            }
         })
         .collect();
-    // sometimes chromium barfs, try again for failed libs
+    // try again for failed libs
     failed_libs
         .par_iter()
         .map(|i| (i, sync_repo(i, &config)))

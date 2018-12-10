@@ -1,7 +1,7 @@
 //! A module for caching or updating git repositories.
 
-use crate::elm_package::{find_git_repo, ElmPackageMetadataRaw, FindGitUrlError, GitRepo};
-use std::error::Error;
+use crate::elm_package::{find_git_repo, ElmPackageMetadataRaw, Error as ElmPackageError, GitRepo};
+use std::error::Error as StdError;
 use std::fmt;
 use std::path::Path;
 use std::process::Command;
@@ -16,44 +16,44 @@ pub struct RepoCacheOptions {
 
 // Error indicating there was an error while git was running
 #[derive(Debug)]
-pub enum GitError {
-    FindGitUrlError(FindGitUrlError),
+pub enum Error {
+    FindGitUrlError(ElmPackageError),
     InvalidRepoPath(String),
     ExecuteError(std::io::Error),
     NonZeroExitCode(Option<i32>),
 }
 
-impl From<FindGitUrlError> for GitError {
-    fn from(e: FindGitUrlError) -> Self {
-        GitError::FindGitUrlError(e)
+impl From<ElmPackageError> for Error {
+    fn from(e: ElmPackageError) -> Self {
+        Error::FindGitUrlError(e)
     }
 }
 
-impl From<std::io::Error> for GitError {
+impl From<std::io::Error> for Error {
     fn from(e: std::io::Error) -> Self {
-        GitError::ExecuteError(e)
+        Error::ExecuteError(e)
     }
 }
 
-impl fmt::Display for GitError {
+impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            GitError::InvalidRepoPath(r) => write!(f, "invalid path for repository {}", r),
-            GitError::FindGitUrlError(e) => write!(f, "{}", e),
-            GitError::ExecuteError(e) => write!(f, "error while executing git: {}", e),
-            GitError::NonZeroExitCode(c) => write!(f, "git returned non-zero exit code: {:?}", c),
+            Error::InvalidRepoPath(r) => write!(f, "invalid path for repository {}", r),
+            Error::FindGitUrlError(e) => write!(f, "{}", e),
+            Error::ExecuteError(e) => write!(f, "error while executing git: {}", e),
+            Error::NonZeroExitCode(c) => write!(f, "git returned non-zero exit code: {:?}", c),
         }
     }
 }
 
-impl Error for GitError {}
+impl StdError for Error {}
 
 // find the path to the git repo in the cache on the filesystem
-fn get_repo_path(m: &ElmPackageMetadataRaw, o: &RepoCacheOptions) -> Result<String, GitError> {
+fn get_repo_path(m: &ElmPackageMetadataRaw, o: &RepoCacheOptions) -> Result<String, Error> {
     Path::new(o.cache_path.as_str())
         .join(Path::new(m.name.as_str()))
         .to_str()
-        .ok_or_else(|| GitError::InvalidRepoPath(m.name.clone()))
+        .ok_or_else(|| Error::InvalidRepoPath(m.name.clone()))
         .map(|url| String::from(url))
 }
 
@@ -72,7 +72,7 @@ fn get_repo_path(m: &ElmPackageMetadataRaw, o: &RepoCacheOptions) -> Result<Stri
 ///     });
 /// // Potentially do something with the results/errors
 /// ```
-pub fn sync_repo(m: &ElmPackageMetadataRaw, o: &RepoCacheOptions) -> Result<(), GitError> {
+pub fn sync_repo(m: &ElmPackageMetadataRaw, o: &RepoCacheOptions) -> Result<(), Error> {
     let repo_path = get_repo_path(m, o)?;
     let git_repo = match find_git_repo(m, o) {
         Ok(u) => u,
@@ -88,7 +88,7 @@ pub fn sync_repo(m: &ElmPackageMetadataRaw, o: &RepoCacheOptions) -> Result<(), 
     Ok(())
 }
 
-fn clone_repo(git_repo: &GitRepo, repo_path: &str, o: &RepoCacheOptions) -> Result<(), GitError> {
+fn clone_repo(git_repo: &GitRepo, repo_path: &str, o: &RepoCacheOptions) -> Result<(), Error> {
     let res = Command::new(o.git_bin_path.as_str())
         .env("GIT_TERMINAL_PROMPT", "0")
         .args(&[
@@ -102,12 +102,12 @@ fn clone_repo(git_repo: &GitRepo, repo_path: &str, o: &RepoCacheOptions) -> Resu
         ])
         .output()?;
     if !res.status.success() {
-        return Err(GitError::NonZeroExitCode(res.status.code()));
+        return Err(Error::NonZeroExitCode(res.status.code()));
     }
     Ok(())
 }
 
-fn update_repo(git_repo: &GitRepo, repo_path: &str, o: &RepoCacheOptions) -> Result<(), GitError> {
+fn update_repo(git_repo: &GitRepo, repo_path: &str, o: &RepoCacheOptions) -> Result<(), Error> {
     Command::new(o.git_bin_path.as_str())
         .env("GIT_TERMINAL_PROMPT", "0")
         .args(&["-C", repo_path, "pull", "--depth", "1", "--tags"])

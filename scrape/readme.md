@@ -3,7 +3,8 @@
 Find, download, and update libraries listed at https://package.elm-lang.org.
 
 Requires [git](https://git-scm.com/) and
-[chromium](https://www.chromium.org/) to be on the path.
+[chromium](https://www.chromium.org/) or 
+[chrome](https://www.google.com/chrome/) to be installed.
 
 ## Running the Application
 

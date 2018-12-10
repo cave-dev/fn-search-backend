@@ -14,6 +14,7 @@
 //! ```
 //!
 
+use crate::repo_cache::RepoCacheOptions;
 use regex::Regex;
 use select::document::Document;
 use select::predicate::{Attr, Class, Predicate};
@@ -80,13 +81,15 @@ impl Error for FindGitUrlError {}
 impl fmt::Display for FindGitUrlError {
     fn fmt<'a>(&self, f: &mut fmt::Formatter<'a>) -> fmt::Result {
         match self {
-            FindGitUrlError::CantFindUrl(s) => write!(f, "can't find url {}", s),
+            FindGitUrlError::CantFindUrl(s) => write!(f, "can't find url for {}", s),
             FindGitUrlError::RequestError(e) => write!(f, "{}", e),
-            FindGitUrlError::CliError(e) => write!(f, "error while running CLI: {}", e),
+            FindGitUrlError::CliError(e) => write!(f, "error while running chromium CLI: {}", e),
             FindGitUrlError::ChromiumError(c) => {
                 write!(f, "chrome returned non-zero exit code: {:?}", c)
             }
-            FindGitUrlError::PageParseError(e) => write!(f, "page returned invalid utf8: {}", e),
+            FindGitUrlError::PageParseError(e) => {
+                write!(f, "package page returned invalid utf8: {}", e)
+            }
             FindGitUrlError::ParseUrlAndVersionError(u) => {
                 write!(f, "error getting url and version from: {}", u)
             }
@@ -94,14 +97,8 @@ impl fmt::Display for FindGitUrlError {
     }
 }
 
-impl Into<Box<dyn Error + Send>> for FindGitUrlError {
-    fn into(self) -> Box<dyn Error + Send> {
-        Box::new(self)
-    }
-}
-
-fn chromium_dl(url: &str) -> Result<String, FindGitUrlError> {
-    let output = Command::new("chromium")
+fn chrome_dl(url: &str, o: &RepoCacheOptions) -> Result<String, FindGitUrlError> {
+    let output = Command::new(o.chromium_bin_path.as_str())
         .args(&["--headless", "--disable-gpu", "--dump-dom", url])
         .output()?;
     if !output.status.success() {
@@ -135,9 +132,12 @@ fn cleanup_url(url: &str) -> Result<GitRepo, FindGitUrlError> {
 }
 
 /// Find the git url for a [ElmPackageMetadataRaw](struct.ElmPackageMetadataRaw.html)
-pub fn find_git_repo(ur: &ElmPackageMetadataRaw) -> Result<GitRepo, FindGitUrlError> {
+pub fn find_git_repo(
+    ur: &ElmPackageMetadataRaw,
+    o: &RepoCacheOptions,
+) -> Result<GitRepo, FindGitUrlError> {
     let url = format!("{}/packages/{}/latest/", PACKAGES_BASE_URL, ur.name);
-    let page_text = chromium_dl(url.as_str())?;
+    let page_text = chrome_dl(url.as_str(), o)?;
     let document = Document::from(page_text.as_str());
     for n in document.find(Class("pkg-nav-module").and(Attr("href", ()))) {
         if n.text().as_str() == "Browse Source" {

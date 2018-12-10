@@ -23,7 +23,8 @@ fn main() -> Result<(), Box<Error>> {
         (author: crate_authors!())
         (about: crate_description!())
         (@arg CONFIG: -c --config +takes_value +required "configuration file")
-    ).get_matches();
+    )
+    .get_matches();
 
     let cfg_file = matches
         .value_of("CONFIG")
@@ -32,12 +33,12 @@ fn main() -> Result<(), Box<Error>> {
     let conn = PgConnection::establish(&get_db_url(&cfg.db))
         .map_err(|e| {
             println!("error while running migrations: {}", e);
-            ()
-        }).unwrap(); // panic on error
+        })
+        .unwrap(); // panic on error
     run_migrations(&conn)
         .map_err(|e| {
             println!("error while running migrations: {}", e);
-            ()
-        }).unwrap(); // panic on error
+        })
+        .unwrap(); // panic on error
     Ok(())
 }

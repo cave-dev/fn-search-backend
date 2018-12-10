@@ -1,5 +1,5 @@
-use actix_web::*;
 use crate::collections::FnCache;
+use actix_web::*;
 use fn_search_backend_db::diesel::pg::PgConnection;
 use parking_lot::RwLock;
 use r2d2::Error as R2D2Error;

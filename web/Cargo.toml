@@ -7,7 +7,6 @@ edition = "2018"
 [dependencies]
 actix-web = "0.7"
 actix = "0.7.5"
-lazy_static = "1.1.0"
 fn_search_backend = { path = ".." }
 fn_search_backend_db = { path = "../db" }
 serde_json = "1.0.32"

@@ -1,6 +1,9 @@
 # scrape
 
-WIP...
+Find, download, and update libraries listed at https://package.elm-lang.org.
+
+Requires [git](https://git-scm.com/) and
+[chromium](https://www.chromium.org/) to be on the path.
 
 ## Running the Application
 

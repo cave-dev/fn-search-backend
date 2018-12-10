@@ -1,7 +1,5 @@
 #[macro_use]
 extern crate clap;
-#[macro_use]
-extern crate lazy_static;
 
 // use jemallocator as our allocator
 extern crate jemallocator;
@@ -15,15 +13,15 @@ pub(crate) mod queries;
 #[cfg(test)]
 mod tests;
 
+use crate::app_state::AppState;
+use crate::collections::FnCache;
+use crate::queries::functions::*;
+use crate::queries::make_fn_cache;
 use actix_web::Responder;
 use actix_web::{
     error::ErrorInternalServerError, middleware::cors::Cors, middleware::Logger, server, App,
     HttpRequest, Result,
 };
-use crate::app_state::AppState;
-use crate::collections::FnCache;
-use crate::queries::functions::*;
-use crate::queries::make_fn_cache;
 use fn_search_backend::get_config;
 use fn_search_backend_db::utils::get_db_url;
 use r2d2::Pool;
@@ -41,7 +39,7 @@ fn search(req: &HttpRequest<AppState>) -> Result<impl Responder> {
     Ok(match res {
         Some(ids) => {
             let funcs = get_functions(&conn, ids).map_err(|e| ErrorInternalServerError(e))?;
-            serde_json::to_string(funcs.as_slice()).map_err(|e| ErrorInternalServerError(e))?
+            serde_json::to_string(funcs.as_slice())?
         }
         None => String::from("[]"),
     })
@@ -52,9 +50,7 @@ fn suggest(req: &HttpRequest<AppState>) -> Result<impl Responder> {
     let cache: Arc<FnCache> = req.state().get_fn_cache();
     let res = (*cache).suggest(sig.as_str(), 10);
     Ok(match res {
-        Some(sigs) => {
-            serde_json::to_string(sigs.as_slice()).map_err(|e| ErrorInternalServerError(e))?
-        }
+        Some(sigs) => serde_json::to_string(sigs.as_slice())?,
         None => String::from("[]"),
     })
 }

@@ -12,6 +12,8 @@
 //!   * Insert exported functions and types into the database
 
 #[macro_use]
+extern crate lazy_static;
+#[macro_use]
 extern crate serde_derive;
 #[macro_use]
 extern crate clap;
@@ -21,9 +23,9 @@ pub mod repo_cache;
 
 use crate::elm_package::ElmPackageMetadataRaw;
 use crate::repo_cache::{sync_repo, RepoCacheOptions};
+use clap::clap_app;
 use rayon::prelude::*;
 use std::error::Error;
-use std::io::{stderr, Write};
 
 fn main() -> Result<(), Box<Error>> {
     let matches = clap_app!(myapp =>
@@ -40,24 +42,28 @@ fn main() -> Result<(), Box<Error>> {
         cache_path: String::from(cfg_file),
     };
     let elm_libs = elm_package::get_elm_libs()?;
-    let cloned_libs: Vec<&ElmPackageMetadataRaw> = elm_libs
+    let failed_libs: Vec<&ElmPackageMetadataRaw> = elm_libs
         .par_iter()
         .map(|i| (i, sync_repo(i, &config)))
-        .filter_map(|r| {
-            match r.1 {
-                Ok(_o) => {
-                    // we can potentially do something with stdout & stderr of the clone process
-                    println!("cloned repo {}", r.0.name);
-                    Some(r.0)
-                }
-                Err(e) => {
-                    let serr = stderr();
-                    write!(serr.lock(), "{}\n", e);
-                    None
-                }
+        .filter_map(|r| match r.1 {
+            Ok(_) => {
+                println!("cloned or updated repo {}", r.0.name);
+                None
             }
+            Err(_) => Some(r.0),
         })
         .collect();
-    println!("{:?}", cloned_libs);
+    // sometimes chromium barfs, try again for failed libs
+    failed_libs
+        .par_iter()
+        .map(|i| (i, sync_repo(i, &config)))
+        .for_each(|r| match r.1 {
+            Ok(_) => {
+                println!("cloned or updated repo {}", r.0.name);
+            }
+            Err(e) => {
+                eprintln!("{}", e);
+            }
+        });
     Ok(())
 }

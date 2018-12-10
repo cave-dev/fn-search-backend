@@ -1,4 +1,4 @@
-use schema::*;
+use crate::schema::*;
 
 #[derive(Queryable, Clone, Debug, Serialize, Deserialize)]
 pub struct Repository {
@@ -8,7 +8,7 @@ pub struct Repository {
 }
 
 #[derive(Insertable, AsChangeset, Debug)]
-#[table_name="repositories"]
+#[table_name = "repositories"]
 pub struct NewRepository<'a> {
     pub name: &'a str,
     pub url: &'a str,
@@ -29,7 +29,7 @@ impl PartialEq for Function {
 }
 
 #[derive(Insertable, Debug)]
-#[table_name="functions"]
+#[table_name = "functions"]
 pub struct NewFunction<'a> {
     pub repo_id: i32,
     pub type_signature: &'a str,

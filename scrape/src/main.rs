@@ -33,13 +33,19 @@ fn main() -> Result<(), Box<Error>> {
         (author: crate_authors!())
         (about: crate_description!())
         (@arg CACHE_DIR: -d --("cache-dir") +takes_value +required "directory for repositories to be cached in")
+        (@arg CHROME: -c --chrome +takes_value +required default_value("chromium") "google chrome or chromium executable")
+        (@arg GIT: -g --git +takes_value +required default_value("git") "git executable")
     ).get_matches();
 
     let cfg_file = matches
         .value_of("CACHE_DIR")
         .expect("error, no cache directory specified");
+    let chrome = matches.value_of("CHROME").unwrap();
+    let git = matches.value_of("GIT").unwrap();
     let config = RepoCacheOptions {
         cache_path: String::from(cfg_file),
+        chromium_bin_path: chrome.to_string(),
+        git_bin_path: git.to_string(),
     };
     let elm_libs = elm_package::get_elm_libs()?;
     let failed_libs: Vec<&ElmPackageMetadataRaw> = elm_libs

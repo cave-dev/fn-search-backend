@@ -10,6 +10,8 @@ use std::process::Command;
 pub struct RepoCacheOptions {
     /// root path for cache
     pub cache_path: String,
+    pub chromium_bin_path: String,
+    pub git_bin_path: String,
 }
 
 // Error indicating there was an error while git was running
@@ -36,7 +38,7 @@ impl From<std::io::Error> for GitError {
 impl fmt::Display for GitError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            GitError::InvalidRepoPath(r) => write!(f, "invalid path for repo {}", r),
+            GitError::InvalidRepoPath(r) => write!(f, "invalid path for repository {}", r),
             GitError::FindGitUrlError(e) => write!(f, "{}", e),
             GitError::ExecuteError(e) => write!(f, "error while executing git: {}", e),
             GitError::NonZeroExitCode(c) => write!(f, "git returned non-zero exit code: {:?}", c),
@@ -72,22 +74,22 @@ fn get_repo_path(m: &ElmPackageMetadataRaw, o: &RepoCacheOptions) -> Result<Stri
 /// ```
 pub fn sync_repo(m: &ElmPackageMetadataRaw, o: &RepoCacheOptions) -> Result<(), GitError> {
     let repo_path = get_repo_path(m, o)?;
-    let git_repo = match find_git_repo(m) {
+    let git_repo = match find_git_repo(m, o) {
         Ok(u) => u,
         Err(e) => {
             return Err(e.into());
         }
     };
     if Path::new(repo_path.as_str()).exists() {
-        update_repo(&git_repo, repo_path.as_str())?;
+        update_repo(&git_repo, repo_path.as_str(), o)?;
     } else {
-        clone_repo(&git_repo, repo_path.as_str())?;
+        clone_repo(&git_repo, repo_path.as_str(), o)?;
     }
     Ok(())
 }
 
-fn clone_repo(git_repo: &GitRepo, repo_path: &str) -> Result<(), GitError> {
-    let res = Command::new("git")
+fn clone_repo(git_repo: &GitRepo, repo_path: &str, o: &RepoCacheOptions) -> Result<(), GitError> {
+    let res = Command::new(o.git_bin_path.as_str())
         .env("GIT_TERMINAL_PROMPT", "0")
         .args(&[
             "clone",
@@ -105,12 +107,12 @@ fn clone_repo(git_repo: &GitRepo, repo_path: &str) -> Result<(), GitError> {
     Ok(())
 }
 
-fn update_repo(git_repo: &GitRepo, repo_path: &str) -> Result<(), GitError> {
-    Command::new("git")
+fn update_repo(git_repo: &GitRepo, repo_path: &str, o: &RepoCacheOptions) -> Result<(), GitError> {
+    Command::new(o.git_bin_path.as_str())
         .env("GIT_TERMINAL_PROMPT", "0")
         .args(&["-C", repo_path, "pull", "--depth", "1", "--tags"])
         .output()?;
-    Command::new("git")
+    Command::new(o.git_bin_path.as_str())
         .env("GIT_TERMINAL_PROMPT", "0")
         .args(&["-C", repo_path, "checkout", git_repo.version.as_str()])
         .output()?;

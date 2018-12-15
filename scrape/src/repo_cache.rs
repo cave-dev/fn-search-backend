@@ -1,10 +1,9 @@
 //! A module for caching or updating git repositories.
 
-use crate::elm_package::{find_git_repo, ElmPackageMetadataRaw, Error as ElmPackageError, GitRepo};
-use std::error::Error as StdError;
-use std::fmt;
+use crate::elm_package::{ElmPackageMetadata, ElmPackageError};
+use crate::git_repo::GitError;
+use std::{fmt, error::Error};
 use std::path::Path;
-use std::process::Command;
 
 /// Configuration options for caching the repositories.
 pub struct RepoCacheOptions {
@@ -14,47 +13,9 @@ pub struct RepoCacheOptions {
     pub git_bin_path: String,
 }
 
-// Error indicating there was an error while git was running
-#[derive(Debug)]
-pub enum Error {
-    FindGitUrlError(ElmPackageError),
-    InvalidRepoPath(String),
-    ExecuteError(std::io::Error),
-    NonZeroExitCode(Option<i32>),
-}
-
-impl From<ElmPackageError> for Error {
-    fn from(e: ElmPackageError) -> Self {
-        Error::FindGitUrlError(e)
-    }
-}
-
-impl From<std::io::Error> for Error {
-    fn from(e: std::io::Error) -> Self {
-        Error::ExecuteError(e)
-    }
-}
-
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Error::InvalidRepoPath(r) => write!(f, "invalid path for repository {}", r),
-            Error::FindGitUrlError(e) => write!(f, "{}", e),
-            Error::ExecuteError(e) => write!(f, "error while executing git: {}", e),
-            Error::NonZeroExitCode(c) => write!(f, "git returned non-zero exit code: {:?}", c),
-        }
-    }
-}
-
-impl StdError for Error {}
-
-// find the path to the git repo in the cache on the filesystem
-fn get_repo_path(m: &ElmPackageMetadataRaw, o: &RepoCacheOptions) -> Result<String, Error> {
-    Path::new(o.cache_path.as_str())
-        .join(Path::new(m.name.as_str()))
-        .to_str()
-        .ok_or_else(|| Error::InvalidRepoPath(m.name.clone()))
-        .map(|url| String::from(url))
+pub enum SyncResult {
+    Update,
+    Clone,
 }
 
 /// Download or update all packages in an [ElmPackageMetadataRaw](../elm_package/struct.ElmPackageMetadataRaw.html)
@@ -72,49 +33,43 @@ fn get_repo_path(m: &ElmPackageMetadataRaw, o: &RepoCacheOptions) -> Result<Stri
 ///     });
 /// // Potentially do something with the results/errors
 /// ```
-pub fn sync_repo(m: &ElmPackageMetadataRaw, o: &RepoCacheOptions) -> Result<(), Error> {
-    let repo_path = get_repo_path(m, o)?;
-    let git_repo = match find_git_repo(m, o) {
-        Ok(u) => u,
-        Err(e) => {
-            return Err(e.into());
-        }
-    };
+pub fn sync_repo(m: &ElmPackageMetadata, o: &RepoCacheOptions) -> Result<SyncResult, SyncRepoError> {
+    let repo_path = m.get_repo_path(o)?;
+    let git_repo = m.find_git_repo(o)?;
     if Path::new(repo_path.as_str()).exists() {
-        update_repo(&git_repo, repo_path.as_str(), o)?;
+        git_repo.update_repo(repo_path.as_str(), &o)?;
+        Ok(SyncResult::Update)
     } else {
-        clone_repo(&git_repo, repo_path.as_str(), o)?;
+        git_repo.clone_repo(repo_path.as_str(), o)?;
+        Ok(SyncResult::Clone)
     }
-    Ok(())
 }
 
-fn clone_repo(git_repo: &GitRepo, repo_path: &str, o: &RepoCacheOptions) -> Result<(), Error> {
-    let res = Command::new(o.git_bin_path.as_str())
-        .env("GIT_TERMINAL_PROMPT", "0")
-        .args(&[
-            "clone",
-            "--branch",
-            git_repo.version.as_str(),
-            "--depth",
-            "1",
-            git_repo.url.as_str(),
-            repo_path,
-        ])
-        .output()?;
-    if !res.status.success() {
-        return Err(Error::NonZeroExitCode(res.status.code()));
-    }
-    Ok(())
+#[derive(Debug)]
+pub enum SyncRepoError {
+    GitError(GitError),
+    ElmPackageError(ElmPackageError),
 }
 
-fn update_repo(git_repo: &GitRepo, repo_path: &str, o: &RepoCacheOptions) -> Result<(), Error> {
-    Command::new(o.git_bin_path.as_str())
-        .env("GIT_TERMINAL_PROMPT", "0")
-        .args(&["-C", repo_path, "pull", "--depth", "1", "--tags"])
-        .output()?;
-    Command::new(o.git_bin_path.as_str())
-        .env("GIT_TERMINAL_PROMPT", "0")
-        .args(&["-C", repo_path, "checkout", git_repo.version.as_str()])
-        .output()?;
-    Ok(())
+impl Error for SyncRepoError {}
+
+impl fmt::Display for SyncRepoError {
+    fn fmt<'a>(&self, f: &mut fmt::Formatter<'a>) -> Result<(), fmt::Error> {
+        match self {
+            SyncRepoError::GitError(e) => write!(f, "{}", e),
+            SyncRepoError::ElmPackageError(e) => write!(f, "{}", e),
+        }
+    }
+}
+
+impl From<GitError> for SyncRepoError {
+    fn from(e: GitError) -> Self {
+        SyncRepoError::GitError(e)
+    }
+}
+
+impl From<ElmPackageError> for SyncRepoError {
+    fn from(e: ElmPackageError) -> Self {
+        SyncRepoError::ElmPackageError(e)
+    }
 }

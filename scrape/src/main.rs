@@ -11,19 +11,15 @@
 //!   * Run a Elm parser on the source code to find all exported functions/variables/etc...
 //!   * Insert exported functions and types into the database
 
-#[macro_use]
-extern crate lazy_static;
-#[macro_use]
-extern crate serde_derive;
-#[macro_use]
-extern crate clap;
-
 pub mod elm_package;
 pub mod repo_cache;
+pub mod repo_parse;
+pub mod chromium_dl;
+pub mod git_repo;
 
-use crate::elm_package::{ElmPackageMetadataRaw, Error as ElmPackageError};
-use crate::repo_cache::{sync_repo, Error as RepoCacheError, RepoCacheOptions};
-use clap::clap_app;
+use crate::elm_package::{ElmPackageMetadata, ElmPackageError};
+use crate::repo_cache::{sync_repo, RepoCacheOptions, SyncRepoError, SyncResult};
+use clap::{clap_app, crate_version, crate_authors, crate_description};
 use rayon::prelude::*;
 use std::error::Error;
 
@@ -48,22 +44,23 @@ fn main() -> Result<(), Box<Error>> {
         git_bin_path: git.to_string(),
     };
     let elm_libs = elm_package::get_elm_libs()?;
-    let failed_libs: Vec<&ElmPackageMetadataRaw> = elm_libs
+    let failed_libs: Vec<&ElmPackageMetadata> = elm_libs
         .par_iter()
         .map(|i| (i, sync_repo(i, &config)))
         .filter_map(|r| match r.1 {
-            Ok(_) => {
-                println!("cloned or updated repo {}", r.0.name);
+            Ok(res) => {
+                match res {
+                    SyncResult::Clone => println!("cloned repo {}", r.0.name),
+                    SyncResult::Update => println!("updated repo {}", r.0.name),
+                }
                 None
             }
             Err(e) => {
-                if let RepoCacheError::FindGitUrlError(ref e) = &e {
-                    if let ElmPackageError::CantFindUrl(_) = e {
-                        // chrome doesn't finish downloading the page sometimes, try again
-                        return Some(r.0);
-                    }
+                if let SyncRepoError::ElmPackageError(ElmPackageError::CantFindUrl(_)) = &e {
+                    // chrome doesn't finish downloading the page sometimes, try again
+                    return Some(r.0);
                 }
-                eprintln!("{}", e);
+                eprintln!("error syncing repo {}: {}", r.0.name, e);
                 None
             }
         })
@@ -77,7 +74,7 @@ fn main() -> Result<(), Box<Error>> {
                 println!("cloned or updated repo {}", r.0.name);
             }
             Err(e) => {
-                eprintln!("{}", e);
+                eprintln!("error syncing repo {}: {}", r.0.name, e);
             }
         });
     Ok(())

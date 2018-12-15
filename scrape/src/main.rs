@@ -13,11 +13,10 @@
 
 pub mod elm_package;
 pub mod repo_cache;
-pub mod repo_parse;
 pub mod chromium_dl;
 pub mod git_repo;
 
-use crate::elm_package::{ElmPackageMetadata, ElmPackageError};
+use crate::elm_package::{ElmPackage, ElmPackageError};
 use crate::repo_cache::{sync_repo, RepoCacheOptions, SyncRepoError, SyncResult};
 use clap::{clap_app, crate_version, crate_authors, crate_description};
 use rayon::prelude::*;
@@ -44,7 +43,7 @@ fn main() -> Result<(), Box<Error>> {
         git_bin_path: git.to_string(),
     };
     let elm_libs = elm_package::get_elm_libs()?;
-    let failed_libs: Vec<&ElmPackageMetadata> = elm_libs
+    let failed_libs: Vec<&ElmPackage> = elm_libs
         .par_iter()
         .map(|i| (i, sync_repo(i, &config)))
         .filter_map(|r| match r.1 {
@@ -56,16 +55,18 @@ fn main() -> Result<(), Box<Error>> {
                 None
             }
             Err(e) => {
-                if let SyncRepoError::ElmPackageError(ElmPackageError::CantFindUrl(_)) = &e {
+                match &e {
                     // chrome doesn't finish downloading the page sometimes, try again
-                    return Some(r.0);
+                    SyncRepoError::ElmPackageError(ElmPackageError::CantFindUrl(_)) => Some(r.0),
+                    _ => {
+                        eprintln!("error syncing repo {}: {}", r.0.name, e);
+                        None
+                    },
                 }
-                eprintln!("error syncing repo {}: {}", r.0.name, e);
-                None
             }
         })
         .collect();
-    // try again for failed libs
+    // try failed libs again
     failed_libs
         .par_iter()
         .map(|i| (i, sync_repo(i, &config)))
@@ -75,6 +76,28 @@ fn main() -> Result<(), Box<Error>> {
             }
             Err(e) => {
                 eprintln!("error syncing repo {}: {}", r.0.name, e);
+            }
+        });
+    // try to parse each elm file
+    elm_libs.par_iter()
+        .map(|i| i.get_exports(&config))
+        .for_each(|res| {
+            match res {
+                Ok(file_res_vec) => {
+                    for file_res in file_res_vec {
+                        match file_res {
+                            Ok(elm_file) => {
+                                println!("successfully parsed file {}: {:?}", elm_file.path, elm_file.exports);
+                            },
+                            Err(e) => {
+                                eprintln!("error while parsing file: {}", e);
+                            }
+                        }
+                    }
+                },
+                Err(e) => {
+                    eprintln!("error while trying to parse elm files: {}", e);
+                }
             }
         });
     Ok(())

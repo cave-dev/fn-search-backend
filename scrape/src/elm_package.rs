@@ -17,12 +17,16 @@
 use crate::git_repo::{GitRepo, GitError};
 use crate::repo_cache::RepoCacheOptions;
 use crate::chromium_dl::{chrome_dl, ChromeError};
+use fn_search_backend_parsers::{get_elm_exports, ElmExports};
 use serde_derive::Deserialize;
 use std::{fmt, error::Error};
+use std::io::{self, Read};
 use serde::de::IgnoredAny;
 use std::path::Path;
 use select::document::Document;
 use select::predicate::{Predicate, Class, Attr};
+use glob::{glob, GlobError, PatternError};
+use std::fs::File;
 
 const PACKAGES_BASE_URL: &str = "https://package.elm-lang.org";
 const PACKAGES_SEARCH_URL: &str = "https://package.elm-lang.org/search.json";
@@ -37,18 +41,18 @@ pub fn get_elm_libs() -> Result<ElmPackageList, Box<Error>> {
     )?)
 }
 
-pub type ElmPackageList = Vec<ElmPackageMetadata>;
+pub type ElmPackageList = Vec<ElmPackage>;
 
 /// The data returned from [package.elm-lang.org](https://package.elm-lang.org)
 #[derive(Deserialize, Debug, Clone)]
-pub struct ElmPackageMetadata {
+pub struct ElmPackage {
     pub name: String,
     summary: IgnoredAny,
     license: IgnoredAny,
     versions: IgnoredAny,
 }
 
-impl ElmPackageMetadata {
+impl ElmPackage {
     /// find the path to the git repo in the cache on the filesystem
     pub fn get_repo_path(&self, o: &RepoCacheOptions) -> Result<String, ElmPackageError> {
         Path::new(o.cache_path.as_str())
@@ -72,6 +76,36 @@ impl ElmPackageMetadata {
         }
         Err(ElmPackageError::CantFindUrl(url.clone()))
     }
+
+    // get the exports of a elm package
+    // returns an error, or a vector of results which are either ElmFiles, or the path to a file that failed to parse
+    pub fn get_exports(&self, o: &RepoCacheOptions) -> Result<Vec<Result<ElmFile, String>>, ElmPackageError> {
+        let mut exports = vec![];
+        let path = self.get_repo_path(&o)?;
+        for res in glob(format!("{}/src/**/*.elm", path).as_str())? {
+            let res = res?;
+            let path = res.as_path();
+            let mut file = File::open(path)?;
+            let mut elm_code = String::new();
+            file.read_to_string(&mut elm_code)?;
+            match get_elm_exports(elm_code.as_str()) {
+                Ok(e) => exports.push(Ok(
+                    ElmFile{
+                        path: path.to_str().unwrap_or_default().to_string(),
+                        exports: e,
+                    }
+                )),
+                Err(_) => exports.push(Err(path.to_str().unwrap_or_default().to_string())),
+            };
+        }
+        Ok(exports)
+    }
+}
+
+#[derive(Debug)]
+pub struct ElmFile {
+    pub path: String,
+    pub exports: ElmExports,
 }
 
 #[derive(Debug)]
@@ -80,6 +114,9 @@ pub enum ElmPackageError {
     ChromeError(ChromeError),
     InvalidRepoPath(String),
     CantFindUrl(String),
+    GlobError(GlobError),
+    GlobPatternError(PatternError),
+    IoError(io::Error),
 }
 
 impl Error for ElmPackageError {}
@@ -91,6 +128,9 @@ impl fmt::Display for ElmPackageError {
             ElmPackageError::ChromeError(e) => write!(f, "{}", e),
             ElmPackageError::InvalidRepoPath(p) => write!(f, "invalid repository path: {}", p),
             ElmPackageError::CantFindUrl(u) => write!(f, "can't find url: {}", u),
+            ElmPackageError::GlobError(e) => write!(f, "error while globbing: {}", e),
+            ElmPackageError::GlobPatternError(e) => write!(f, "invalid glob pattern: {}", e),
+            ElmPackageError::IoError(e) => write!(f, "io error while getting exports: {}", e),
         }
     }
 }
@@ -104,5 +144,23 @@ impl From<GitError> for ElmPackageError {
 impl From<ChromeError> for ElmPackageError {
     fn from(e: ChromeError) -> Self {
         ElmPackageError::ChromeError(e)
+    }
+}
+
+impl From<GlobError> for ElmPackageError {
+    fn from(e: GlobError) -> Self {
+        ElmPackageError::GlobError(e)
+    }
+}
+
+impl From<PatternError> for ElmPackageError {
+    fn from(e: PatternError) -> Self {
+        ElmPackageError::GlobPatternError(e)
+    }
+}
+
+impl From<io::Error> for ElmPackageError {
+    fn from(e: io::Error) -> Self {
+        ElmPackageError::IoError(e)
     }
 }

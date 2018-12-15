@@ -1,4 +1,14 @@
 #[derive(Debug, PartialEq)]
+
+pub enum ElmCode {
+    Comment,
+    Declaration,
+    Ignore,
+    Function,
+    Type,
+}
+
+#[derive(Debug, PartialEq)]
 pub enum ElmModule<'a> {
     All,
     List(Vec<TypeOrFunction<'a>>),

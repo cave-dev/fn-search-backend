@@ -127,11 +127,14 @@ named!(pub elm_mod_def<&str, ElmModule>,
     )
 );
 
-named!(elm<&str, (ElmModule, Vec<ElmCode>)>,
+named!(pub elm<&str, (ElmModule, Vec<ElmCode>)>,
     do_parse!(
         exposed: elm_mod_def >>
-        multi_spaces_or_new_line_or_comma >>
-        defs: many1!(alt!(ignore_comments | function | complete!(ignore_any))) >>
+        defs: many0!(alt!(
+                complete!(ignore_comments) |
+                complete!(function) |
+                complete!(ignore_any)
+            )) >>
         (exposed, defs)
     )
 );
@@ -165,7 +168,14 @@ mod tests {
         named!(test<&str, Vec<ElmCode>>, many1!(complete!(ignore_any)));
         assert_eq!(
             test("t s "),
-            Ok(("", vec!(ElmCode::Ignore, ElmCode::Ignore, ElmCode::Ignore, ElmCode::Ignore)))
+            Ok(("",
+                vec!(
+                    ElmCode::Ignore,
+                    ElmCode::Ignore,
+                    ElmCode::Ignore,
+                    ElmCode::Ignore
+                )
+            ))
         );
     }
 
@@ -255,6 +265,39 @@ mod tests {
                         ),
                     )
                 )
+            ))
+        );
+    }
+
+    #[test]
+    fn integration() {
+        assert_eq!(
+            elm("module Utils exposing (test)\ntest : Int -> List Int -> Int\ntest"),
+            Ok(("",
+                (ElmModule::List(
+                        vec!(
+                            TypeOrFunction::Function(
+                                Function{
+                                    name: "test",
+                                    type_signature: None
+                                }
+                            )
+                        )
+                ), vec!(
+                    ElmCode::Ignore,
+                    ElmCode::Function(
+                        Function{
+                            name: "test",
+                            type_signature: Some(
+                                vec!(
+                                    "Int".to_string(),
+                                    "List Int".to_string(),
+                                    "Int".to_string()
+                                )
+                            )
+                        }
+                    )
+                ))
             ))
         );
     }

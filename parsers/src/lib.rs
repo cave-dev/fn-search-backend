@@ -84,6 +84,7 @@ named!(pub ignore_comments<&str, ElmCode>,
 named!(pub function<&str, ElmCode>,
     map!(
         do_parse!(
+            tag!("\n") >>
             name: take_while!(is_alphanumeric) >>
             multi_spaces_or_new_line_or_comma >>
             char!(':') >>
@@ -135,7 +136,7 @@ named!(pub elm<&str, (ElmModule, Vec<ElmCode>)>,
                 complete!(function) |
                 complete!(ignore_any)
             )) >>
-        (exposed, defs)
+        (exposed, defs.into_iter().filter(|w| w != &ElmCode::Ignore).collect::<Vec<ElmCode>>())
     )
 );
 
@@ -182,7 +183,7 @@ mod tests {
     #[test]
     fn function_type_signature() {
         assert_eq!(
-            function("test : Int -> List Int -> \nInt\ntest"),
+            function("\ntest : Int -> List Int -> \nInt\ntest"),
             Ok(("",
                 ElmCode::Function(
                     Function{
@@ -284,7 +285,6 @@ mod tests {
                             )
                         )
                 ), vec!(
-                    ElmCode::Ignore,
                     ElmCode::Function(
                         Function{
                             name: "test",
@@ -297,6 +297,110 @@ mod tests {
                             )
                         }
                     )
+                ))
+            ))
+        );
+    }
+
+    use std::fs;
+
+
+    #[test]
+    fn file_integration() {
+        let contents = fs::read_to_string("./Main.elm")
+            .expect("Something went wrong reading the file");
+
+        assert_eq!(
+            elm(&contents),
+            Ok(("",
+                (ElmModule::All,
+                 vec!(
+                    ElmCode::Function(
+                        Function{
+                            name: "subscriptions",
+                            type_signature: Some(
+                                vec!(
+                                    "Model".to_string(),
+                                    "Sub Msg".to_string(),
+                                )
+                            )
+                        }
+                    ),
+                    ElmCode::Function(
+                        Function{
+                            name: "init",
+                            type_signature: Some(
+                                vec!(
+                                    "Int".to_string(),
+                                    "( Model, Cmd Msg )".to_string(),
+                                )
+                            )
+                        }
+                    ),
+                    ElmCode::Function(
+                        Function{
+                            name: "update",
+                            type_signature: Some(
+                                vec!(
+                                    "Msg".to_string(),
+                                    "Model".to_string(),
+                                    "( Model, Cmd Msg )".to_string(),
+                                )
+                            )
+                        }
+                    ),
+                    ElmCode::Function(
+                        Function{
+                            name: "functionView",
+                            type_signature: Some(
+                                vec!(
+                                    "SearchResult".to_string(),
+                                    "Html Msg".to_string(),
+                                )
+                            )
+                        }
+                    ),
+                    ElmCode::Function(
+                        Function{
+                            name: "view",
+                            type_signature: Some(
+                                vec!(
+                                    "Model".to_string(),
+                                    "Html Msg".to_string(),
+                                )
+                            )
+                        }
+                    ),
+                    ElmCode::Function(
+                        Function{
+                            name: "searchResultDecoder",
+                            type_signature: Some(
+                                vec!(
+                                    "Decode.Decoder (List SearchResult)".to_string(),
+                                )
+                            )
+                        }
+                    ),
+                    ElmCode::Function(
+                        Function{
+                            name: "repoDecoder",
+                            type_signature: Some(
+                                vec!(
+                                    "Decode.Decoder SearchResultRepo".to_string(),
+                                )
+                            )
+                        }
+                    ),
+                    ElmCode::Function(
+                        Function{
+                            name: "resDecoder",
+                            type_signature: Some(
+                                vec!(
+                                    "Decode.Decoder SearchResultFn".to_string(),
+                                )
+                            )
+                        }
+                    ),
                 ))
             ))
         );

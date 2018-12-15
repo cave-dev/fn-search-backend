@@ -92,7 +92,23 @@ named!(pub function<&str, ElmCode>,
             tag!(name) >>
             (name, types)
         ),
-        |(name, types)| ElmCode::Function
+        |(name, types)| {
+            let type_signature =
+                types
+                .split("->")
+                .map(|s| s.replace("\n", ""))
+                .map(|s| s.replace("\t", ""))
+                .map(|s| s.trim().to_string())
+                .collect::<Vec<String>>()
+                ;
+
+            ElmCode::Function(
+                Function{
+                    name: name,
+                    type_signature: Some(type_signature)
+                }
+            )
+        }
     )
 );
 
@@ -114,10 +130,8 @@ named!(pub elm_mod_def<&str, ElmModule>,
 named!(elm<&str, (ElmModule, Vec<ElmCode>)>,
     do_parse!(
         exposed: elm_mod_def >>
-        // defs: alt!(type_def | type_def_function | ignore_comments | code_to_be_ignored) >>
         multi_spaces_or_new_line_or_comma >>
         defs: many1!(alt!(ignore_comments | function | complete!(ignore_any))) >>
-        // defs: opt!(many0!(ignore_any)) >>
         (exposed, defs)
     )
 );
@@ -158,9 +172,20 @@ mod tests {
     #[test]
     fn function_type_signature() {
         assert_eq!(
-            function("test : hello -> \nworld -> Int\ntest"),
+            function("test : Int -> List Int -> \nInt\ntest"),
             Ok(("",
-                ElmCode::Function
+                ElmCode::Function(
+                    Function{
+                        name: "test",
+                        type_signature:
+                            Some(vec!(
+                                    "Int".to_string(),
+                                    "List Int".to_string(),
+                                    "Int".to_string()
+                                )
+                            )
+                    }
+                )
             ))
         );
     }

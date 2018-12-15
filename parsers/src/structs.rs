@@ -1,11 +1,11 @@
 #[derive(Debug, PartialEq)]
 
-pub enum ElmCode {
+pub enum ElmCode<'a> {
     Comment,
     Declaration,
     Ignore,
-    Function,
-    Type,
+    Function(Function<'a>),
+    Type(Type<'a>),
 }
 
 #[derive(Debug, PartialEq)]
@@ -16,7 +16,7 @@ pub enum ElmModule<'a> {
 
 type Name<'a> = &'a str;
 type Definition<'a> = &'a str;
-type TypeSignature <'a> = &'a str;
+type TypeSignature = Vec<String>;
 
 #[derive(Debug, PartialEq)]
 pub enum TypeOrFunction<'a> {
@@ -33,5 +33,5 @@ pub struct Type<'a> {
 #[derive(Debug, PartialEq)]
 pub struct Function<'a> {
     pub name: Name<'a>,
-    pub type_signature: Option<TypeSignature<'a>>,
+    pub type_signature: Option<TypeSignature>,
 }

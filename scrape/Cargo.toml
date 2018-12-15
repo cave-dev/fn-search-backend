@@ -12,6 +12,7 @@ serde_derive = "1.0.80"
 rayon = "1.0.2"
 clap = "2.32.0"
 fn_search_backend_db = { path = "../db" }
+fn_search_backend_parsers = { path = "../parsers" }
 select = "0.4.2"
 lazy_static = "1.2.0"
 regex = "1.1.0"

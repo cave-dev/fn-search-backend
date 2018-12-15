@@ -14,15 +14,15 @@
 //! ```
 //!
 
+use crate::git_repo::{GitRepo, GitError};
 use crate::repo_cache::RepoCacheOptions;
-use regex::Regex;
-use select::document::Document;
-use select::predicate::{Attr, Class, Predicate};
+use crate::chromium_dl::{chrome_dl, ChromeError};
+use serde_derive::Deserialize;
+use std::{fmt, error::Error};
 use serde::de::IgnoredAny;
-use serde_json::from_str;
-use std::error::Error as StdError;
-use std::fmt;
-use std::process::Command;
+use std::path::Path;
+use select::document::Document;
+use select::predicate::{Predicate, Class, Attr};
 
 const PACKAGES_BASE_URL: &str = "https://package.elm-lang.org";
 const PACKAGES_SEARCH_URL: &str = "https://package.elm-lang.org/search.json";
@@ -31,113 +31,78 @@ const PACKAGES_SEARCH_URL: &str = "https://package.elm-lang.org/search.json";
 /// # Error
 /// Returns an error if there is a network failure or the data received by
 /// [package.elm-lang.org](https://package.elm-lang.org) was not in the expected format.
-pub fn get_elm_libs() -> Result<ElmPackageMetadataListRaw, Box<StdError>> {
-    Ok(from_str::<ElmPackageMetadataListRaw>(
+pub fn get_elm_libs() -> Result<ElmPackageList, Box<Error>> {
+    Ok(serde_json::from_str::<ElmPackageList>(
         reqwest::get(PACKAGES_SEARCH_URL)?.text()?.as_str(),
     )?)
 }
 
+pub type ElmPackageList = Vec<ElmPackageMetadata>;
+
 /// The data returned from [package.elm-lang.org](https://package.elm-lang.org)
 #[derive(Deserialize, Debug, Clone)]
-pub struct ElmPackageMetadataRaw {
+pub struct ElmPackageMetadata {
     pub name: String,
     summary: IgnoredAny,
     license: IgnoredAny,
     versions: IgnoredAny,
 }
 
-type ElmPackageMetadataListRaw = Vec<ElmPackageMetadataRaw>;
+impl ElmPackageMetadata {
+    /// find the path to the git repo in the cache on the filesystem
+    pub fn get_repo_path(&self, o: &RepoCacheOptions) -> Result<String, ElmPackageError> {
+        Path::new(o.cache_path.as_str())
+            .join(Path::new(self.name.as_str()))
+            .to_str()
+            .ok_or_else(|| ElmPackageError::InvalidRepoPath(self.name.clone()))
+            .map(|url| String::from(url))
+    }
+
+    /// Find the git url for a [ElmPackageMetadataRaw](struct.ElmPackageMetadataRaw.html)
+    pub fn find_git_repo(&self, o: &RepoCacheOptions) -> Result<GitRepo, ElmPackageError> {
+        let url = format!("{}/packages/{}/latest/", PACKAGES_BASE_URL, self.name);
+        let page_text = chrome_dl(url.as_str(), o)?;
+        let document = Document::from(page_text.as_str());
+        for n in document.find(Class("pkg-nav-module").and(Attr("href", ()))) {
+            if n.text().as_str() == "Browse Source" {
+                if let Some(l) = n.attr("href") {
+                    return Ok(GitRepo::from_url(l)?);
+                }
+            }
+        }
+        Err(ElmPackageError::CantFindUrl(url.clone()))
+    }
+}
 
 #[derive(Debug)]
-pub enum Error {
+pub enum ElmPackageError {
+    GitError(GitError),
+    ChromeError(ChromeError),
+    InvalidRepoPath(String),
     CantFindUrl(String),
-    RequestError(reqwest::Error),
-    CliError(std::io::Error),
-    ChromiumError(Option<i32>),
-    PageParseError(std::string::FromUtf8Error),
-    ParseUrlAndVersionError(String),
 }
 
-impl From<reqwest::Error> for Error {
-    fn from(e: reqwest::Error) -> Self {
-        Error::RequestError(e)
-    }
-}
+impl Error for ElmPackageError {}
 
-impl From<std::io::Error> for Error {
-    fn from(e: std::io::Error) -> Self {
-        Error::CliError(e)
-    }
-}
-
-impl From<std::string::FromUtf8Error> for Error {
-    fn from(e: std::string::FromUtf8Error) -> Self {
-        Error::PageParseError(e)
-    }
-}
-
-impl StdError for Error {}
-
-impl fmt::Display for Error {
+impl fmt::Display for ElmPackageError {
     fn fmt<'a>(&self, f: &mut fmt::Formatter<'a>) -> fmt::Result {
         match self {
-            Error::CantFindUrl(s) => write!(f, "can't find url for {}", s),
-            Error::RequestError(e) => write!(f, "{}", e),
-            Error::CliError(e) => write!(f, "error while running chromium CLI: {}", e),
-            Error::ChromiumError(c) => write!(f, "chrome returned non-zero exit code: {:?}", c),
-            Error::PageParseError(e) => write!(f, "package page returned invalid utf8: {}", e),
-            Error::ParseUrlAndVersionError(u) => {
-                write!(f, "error getting url and version from: {}", u)
-            }
+            ElmPackageError::GitError(e) => write!(f, "{}", e),
+            ElmPackageError::ChromeError(e) => write!(f, "{}", e),
+            ElmPackageError::InvalidRepoPath(p) => write!(f, "invalid repository path: {}", p),
+            ElmPackageError::CantFindUrl(u) => write!(f, "can't find url: {}", u),
         }
     }
 }
 
-fn chrome_dl(url: &str, o: &RepoCacheOptions) -> Result<String, Error> {
-    let output = Command::new(o.chromium_bin_path.as_str())
-        .args(&["--headless", "--disable-gpu", "--dump-dom", url])
-        .output()?;
-    if !output.status.success() {
-        return Err(Error::ChromiumError(output.status.code()));
+impl From<GitError> for ElmPackageError {
+    fn from(e: GitError) -> Self {
+        ElmPackageError::GitError(e)
     }
-    Ok(String::from_utf8(output.stdout)?)
 }
 
-pub struct GitRepo {
-    pub url: String,
-    pub version: String,
-}
-
-fn cleanup_url(url: &str) -> Result<GitRepo, Error> {
-    lazy_static! {
-        static ref CLEANUP_REGEX: Regex =
-            Regex::new(r"^(?P<url>http.+)/tree/(?P<version>[\.\d]+)$")
-                .expect("failed to build cleanup regex");
+impl From<ChromeError> for ElmPackageError {
+    fn from(e: ChromeError) -> Self {
+        ElmPackageError::ChromeError(e)
     }
-    if let Some(captures) = CLEANUP_REGEX.captures(url) {
-        if let Some(url) = captures.name("url") {
-            if let Some(version) = captures.name("version") {
-                return Ok(GitRepo {
-                    url: url.as_str().to_string(),
-                    version: version.as_str().to_string(),
-                });
-            }
-        }
-    }
-    Err(Error::ParseUrlAndVersionError(url.to_string()))
-}
-
-/// Find the git url for a [ElmPackageMetadataRaw](struct.ElmPackageMetadataRaw.html)
-pub fn find_git_repo(ur: &ElmPackageMetadataRaw, o: &RepoCacheOptions) -> Result<GitRepo, Error> {
-    let url = format!("{}/packages/{}/latest/", PACKAGES_BASE_URL, ur.name);
-    let page_text = chrome_dl(url.as_str(), o)?;
-    let document = Document::from(page_text.as_str());
-    for n in document.find(Class("pkg-nav-module").and(Attr("href", ()))) {
-        if n.text().as_str() == "Browse Source" {
-            if let Some(l) = n.attr("href") {
-                return cleanup_url(l);
-            }
-        }
-    }
-    Err(Error::CantFindUrl(url.clone()))
 }

@@ -2,6 +2,8 @@
 name = "fn_search_backend_parsers"
 version = "0.1.0"
 authors = ["Yuya Yabe <yuyabee@gmail.com>"]
+edition = "2018"
 
 [dependencies]
 nom = "^4.1"
+hashbrown = "0.1.7"

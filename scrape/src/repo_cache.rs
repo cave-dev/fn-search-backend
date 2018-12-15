@@ -1,6 +1,6 @@
 //! A module for caching or updating git repositories.
 
-use crate::elm_package::{ElmPackageMetadata, ElmPackageError};
+use crate::elm_package::{ElmPackage, ElmPackageError};
 use crate::git_repo::GitError;
 use std::{fmt, error::Error};
 use std::path::Path;
@@ -33,7 +33,7 @@ pub enum SyncResult {
 ///     });
 /// // Potentially do something with the results/errors
 /// ```
-pub fn sync_repo(m: &ElmPackageMetadata, o: &RepoCacheOptions) -> Result<SyncResult, SyncRepoError> {
+pub fn sync_repo(m: &ElmPackage, o: &RepoCacheOptions) -> Result<SyncResult, SyncRepoError> {
     let repo_path = m.get_repo_path(o)?;
     let git_repo = m.find_git_repo(o)?;
     if Path::new(repo_path.as_str()).exists() {

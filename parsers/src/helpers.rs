@@ -3,7 +3,7 @@ pub fn is_space_or_newline(c: char) -> bool {
 }
 
 pub fn is_alphanumeric(c: char) -> bool {
-    c.is_alphanumeric()
+    c.is_alphanumeric() || c == '_'
 }
 
 pub fn is_space_or_newline_or_comma(c: char) -> bool {

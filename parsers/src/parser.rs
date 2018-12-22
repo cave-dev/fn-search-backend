@@ -28,7 +28,13 @@ named!(pub expose_functions_and_types<&str, ElmModule>,
 named!(pub function_or_type<&str, TypeOrFunction>,
     map!(
         delimited!(
-            take_while!(is_space_or_newline),
+            do_parse!(
+                many0!(comments) >>
+                take_while!(is_space_or_newline) >>
+                many0!(comments) >>
+                take_while!(is_space_or_newline) >>
+                ()
+            ),
             alt!(
                 do_parse!(
                     s: take_while!(is_alphanumeric) >>
@@ -39,7 +45,13 @@ named!(pub function_or_type<&str, TypeOrFunction>,
                 ) |
                 take_while!(is_alphanumeric)
             ),
-            take_while!(is_space_or_newline)
+            do_parse!(
+                many0!(comments) >>
+                take_while!(is_space_or_newline) >>
+                many0!(comments) >>
+                take_while!(is_space_or_newline) >>
+                ()
+            )
         ),
         |s| {
             // based on the assumption that anything starting with:
@@ -82,6 +94,16 @@ named!(pub ignore_comments<&str, ElmCode>,
     )
 );
 
+named!(pub comments<&str, &str>,
+    map!(
+        alt!(
+            preceded!(tag!("{-"), take_until_and_consume!("-}")) |
+            preceded!(tag!("--"), take_until_and_consume!("\n"))
+        ),
+        |s| s
+    )
+);
+
 /*
     separate by -> ignore spaces, tabs, newline
         name : type -> type -> type
@@ -120,18 +142,31 @@ named!(pub function<&str, ElmCode>,
 );
 
 named!(pub elm_mod_def<&str, ElmModule>,
-    do_parse!(
-        take_until!("module") >>
-        tag!("module") >>
-        multi_spaces_or_new_line_or_comma >>
-        take_till!(is_space_or_newline_or_comma) >>
-        multi_spaces_or_new_line_or_comma >>
-        tag!("exposing") >>
-        multi_spaces_or_new_line_or_comma >>
-        char!('(') >>
-        exposed: alt!(expose_all | expose_functions_and_types) >>
-        char!(')') >>
-        (exposed)
+    alt!(
+        do_parse!(
+            take_until!("module") >>
+            tag!("module") >>
+            take_until!("exposing") >>
+            tag!("exposing") >>
+            multi_spaces_or_new_line_or_comma >>
+            char!('(') >>
+            exposed: alt!(expose_all | expose_functions_and_types) >>
+            char!(')') >>
+            (exposed)
+        ) |
+        do_parse!(
+            take_until!("effect") >>
+            tag!("effect") >>
+            take_until!("module") >>
+            tag!("module") >>
+            take_until!("exposing") >>
+            tag!("exposing") >>
+            multi_spaces_or_new_line_or_comma >>
+            char!('(') >>
+            exposed: alt!(expose_all | expose_functions_and_types) >>
+            char!(')') >>
+            (exposed)
+        )
     )
 );
 
@@ -318,7 +353,7 @@ mod tests {
 
     #[test]
     fn file_integration() {
-        let contents = fs::read_to_string("../scrape/target/cache/pablohirafuji/elm-syntax-highlight/src/SyntaxHighlight/Language/Xml.elm")
+        let contents = fs::read_to_string("../scrape/target/cache/elm/time/src/Time.elm")
             .expect("Something went wrong reading the file");
 
         assert_eq!(

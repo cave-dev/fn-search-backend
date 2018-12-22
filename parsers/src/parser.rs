@@ -3,6 +3,7 @@ use crate::helpers::{
     is_alphanumeric,
     is_space_or_newline,
     is_space_or_newline_or_comma,
+    is_allowed_for_types_and_functions,
 };
 
 use crate::structs::{
@@ -28,7 +29,16 @@ named!(pub function_or_type<&str, TypeOrFunction>,
     map!(
         delimited!(
             take_while!(is_space_or_newline),
-            take_while!(is_alphanumeric),
+            alt!(
+                do_parse!(
+                    s: take_while!(is_alphanumeric) >>
+                    tag!("(") >>
+                    take_while!(is_allowed_for_types_and_functions) >>
+                    tag!(")") >>
+                    (s)
+                ) |
+                take_while!(is_alphanumeric)
+            ),
             take_while!(is_space_or_newline)
         ),
         |s| {
@@ -111,6 +121,7 @@ named!(pub function<&str, ElmCode>,
 
 named!(pub elm_mod_def<&str, ElmModule>,
     do_parse!(
+        take_until!("module") >>
         tag!("module") >>
         multi_spaces_or_new_line_or_comma >>
         take_till!(is_space_or_newline_or_comma) >>
@@ -132,7 +143,11 @@ named!(pub elm<&str, (ElmModule, Vec<ElmCode>)>,
                 complete!(function) |
                 complete!(ignore_any)
             )) >>
-        (exposed, defs.into_iter().filter(|w| w != &ElmCode::Ignore).collect::<Vec<ElmCode>>())
+        (
+            exposed,
+            defs.into_iter()
+                .filter(|w| w != &ElmCode::Ignore).collect::<Vec<ElmCode>>()
+        )
     )
 );
 
@@ -303,7 +318,7 @@ mod tests {
 
     #[test]
     fn file_integration() {
-        let contents = fs::read_to_string("./Main.elm")
+        let contents = fs::read_to_string("../scrape/target/cache/pablohirafuji/elm-syntax-highlight/src/SyntaxHighlight/Language/Xml.elm")
             .expect("Something went wrong reading the file");
 
         assert_eq!(

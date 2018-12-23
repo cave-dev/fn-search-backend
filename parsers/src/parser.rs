@@ -1,5 +1,6 @@
 use crate::helpers::{
     is_alphanumeric,
+    is_operator,
     is_space_or_newline,
     is_space_or_newline_or_comma,
     is_allowed_for_types_and_functions,
@@ -39,6 +40,12 @@ named!(pub function_or_type<&str, TypeOrFunction>,
                     s: take_while!(is_alphanumeric) >>
                     tag!("(") >>
                     take_while!(is_allowed_for_types_and_functions) >>
+                    tag!(")") >>
+                    (s)
+                ) |
+                do_parse!(
+                    tag!("(") >>
+                    s: take_while!(is_operator) >>
                     tag!(")") >>
                     (s)
                 ) |

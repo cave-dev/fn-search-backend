@@ -11,14 +11,14 @@
 //!   * Run a Elm parser on the source code to find all exported functions/variables/etc...
 //!   * Insert exported functions and types into the database
 
-pub mod elm_package;
-pub mod repo_cache;
 pub mod chromium_dl;
+pub mod elm_package;
 pub mod git_repo;
+pub mod repo_cache;
 
 use crate::elm_package::{ElmPackage, ElmPackageError};
 use crate::repo_cache::{sync_repo, RepoCacheOptions, SyncRepoError, SyncResult};
-use clap::{ArgMatches, clap_app, crate_version, crate_authors, crate_description};
+use clap::{clap_app, crate_authors, crate_description, crate_version, ArgMatches};
 use rayon::prelude::*;
 use std::error::Error;
 
@@ -64,11 +64,13 @@ fn main() -> Result<(), Box<Error>> {
                 Err(e) => {
                     match &e {
                         // chrome doesn't finish downloading the page sometimes, try again
-                        SyncRepoError::ElmPackageError(ElmPackageError::CantFindUrl(_)) => Some(r.0),
+                        SyncRepoError::ElmPackageError(ElmPackageError::CantFindUrl(_)) => {
+                            Some(r.0)
+                        }
                         _ => {
                             eprintln!("error syncing repo {}: {}", r.0.name, e);
                             None
-                        },
+                        }
                     }
                 }
             })
@@ -78,8 +80,11 @@ fn main() -> Result<(), Box<Error>> {
             .par_iter()
             .map(|i| (i, sync_repo(i, &config)))
             .for_each(|r| match r.1 {
-                Ok(_) => {
-                    println!("cloned or updated repo {}", r.0.name);
+                Ok(res) => {
+                    match res {
+                        SyncResult::Clone => println!("cloned repo {}", r.0.name),
+                        SyncResult::Update => println!("updated repo {}", r.0.name),
+                    };
                 }
                 Err(e) => {
                     eprintln!("error syncing repo {}: {}", r.0.name, e);
@@ -88,25 +93,27 @@ fn main() -> Result<(), Box<Error>> {
     } else if let Some(_) = matches.subcommand_matches("parse") {
         let elm_libs = elm_package::get_elm_libs()?;
         // try to parse each elm file
-        elm_libs.par_iter()
+        elm_libs
+            .par_iter()
             .map(|i| i.get_exports(&config))
-            .for_each(|res| {
-                match res {
-                    Ok(file_res_vec) => {
-                        for file_res in file_res_vec {
-                            match file_res {
-                                Ok(elm_file) => {
-                                    println!("successfully parsed file {}: {:?}", elm_file.path, elm_file.exports);
-                                },
-                                Err(e) => {
-                                    eprintln!("error while parsing file: {}", e);
-                                }
+            .for_each(|res| match res {
+                Ok(file_res_vec) => {
+                    for file_res in file_res_vec {
+                        match file_res {
+                            Ok(elm_file) => {
+                                println!(
+                                    "successfully parsed file {}: {:?}",
+                                    elm_file.path, elm_file.exports
+                                );
+                            }
+                            Err(e) => {
+                                eprintln!("error while parsing file: {}", e);
                             }
                         }
-                    },
-                    Err(e) => {
-                        eprintln!("error while trying to parse elm files: {}", e);
                     }
+                }
+                Err(e) => {
+                    eprintln!("error while trying to parse elm files: {}", e);
                 }
             });
     } else {

@@ -40,6 +40,7 @@ pub fn get_elm_exports(code: &str) -> Result<ElmExports, ()> {
         Ok(v) => v,
         Err(_) => return Err(()),
     };
+
     if let ElmModule::List(l) = module {
         Ok(exports_from_module_list(l.as_ref(), elm_code.as_ref()))
     } else {

@@ -27,10 +27,12 @@ named!(pub expose_functions_and_types<&str, ElmModule>,
 named!(pub function_or_type<&str, TypeOrFunction>,
     map!(
         delimited!(
-            do_parse!(
-                many0!(comments) >>
-                take_while!(is_space_or_newline) >>
-                ()
+            many1!(
+                do_parse!(
+                    many0!(comments) >>
+                    take_while!(is_space_or_newline) >>
+                    ()
+                )
             ),
             alt!(
                 do_parse!(
@@ -42,12 +44,12 @@ named!(pub function_or_type<&str, TypeOrFunction>,
                 ) |
                 take_while!(is_alphanumeric)
             ),
-            do_parse!(
-                many0!(comments) >>
-                take_while!(is_space_or_newline) >>
-                many0!(comments) >>
-                take_while!(is_space_or_newline) >>
-                ()
+            many1!(
+                do_parse!(
+                    many0!(comments) >>
+                    take_while!(is_space_or_newline) >>
+                    ()
+                )
             )
         ),
         |s| {
@@ -154,7 +156,7 @@ named!(pub elm_mod_def<&str, ElmModule>,
 );
 
 named!(pub elm<&str, (ElmModule, Vec<ElmCode>)>,
-    // alt!(
+    alt!(
         complete!(
             do_parse!(
                 exposed: elm_mod_def >>
@@ -173,22 +175,22 @@ named!(pub elm<&str, (ElmModule, Vec<ElmCode>)>,
                 )
             )
         )
-        // |
-        // complete!(
-            // do_parse!(
-                // defs: many0!(alt!(
-                        // complete!(ignore_comments) |
-                        // complete!(function) |
-                        // complete!(ignore_any)
-                    // )) >>
-                // (
-                    // ElmModule::List(vec!()),
-                    // defs.into_iter()
-                        // .filter(|w| w != &ElmCode::Ignore).collect::<Vec<ElmCode>>()
-                // )
-            // )
-        // )
-    // )
+        |
+        complete!(
+            do_parse!(
+                defs: many0!(alt!(
+                        complete!(ignore_comments) |
+                        complete!(function) |
+                        complete!(ignore_any)
+                    )) >>
+                (
+                    ElmModule::List(vec!()),
+                    defs.into_iter()
+                        .filter(|w| w != &ElmCode::Ignore).collect::<Vec<ElmCode>>()
+                )
+            )
+        )
+    )
 );
 
 #[cfg(test)]
@@ -359,7 +361,7 @@ mod tests {
 
     #[test]
     fn file_integration() {
-        let contents = fs::read_to_string("../scrape/target/cache/NoRedInk/elm-plot-19/src/Plot.elm")
+        let contents = fs::read_to_string("Main.elm")
             .expect("Something went wrong reading the file");
 
         assert_eq!(

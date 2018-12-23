@@ -2,8 +2,8 @@
 
 use crate::elm_package::{ElmPackage, ElmPackageError};
 use crate::git_repo::GitError;
-use std::{fmt, error::Error};
 use std::path::Path;
+use std::{error::Error, fmt};
 
 /// Configuration options for caching the repositories.
 pub struct RepoCacheOptions {

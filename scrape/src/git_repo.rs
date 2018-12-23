@@ -1,9 +1,8 @@
-
-use std::process::Command;
-use lazy_static::lazy_static;
 use crate::repo_cache::RepoCacheOptions;
-use std::{fmt, io, error::Error};
+use lazy_static::lazy_static;
 use regex::Regex;
+use std::process::Command;
+use std::{error::Error, fmt, io};
 
 pub struct GitRepo {
     pub url: String,
@@ -45,7 +44,7 @@ impl GitRepo {
             .output()?;
         if !res.status.success() {
             return match (String::from_utf8(res.stdout), String::from_utf8(res.stderr)) {
-                (Ok(o), Ok(e)) => Err(GitError::ProcessError(res.status.code(),o,e)),
+                (Ok(o), Ok(e)) => Err(GitError::ProcessError(res.status.code(), o, e)),
                 _ => Err(GitError::ProcessErrorInvalidUtf8(res.status.code())),
             };
         }
@@ -59,7 +58,7 @@ impl GitRepo {
             .output()?;
         if !res.status.success() {
             return match (String::from_utf8(res.stdout), String::from_utf8(res.stderr)) {
-                (Ok(o), Ok(e)) => Err(GitError::ProcessError(res.status.code(),o,e)),
+                (Ok(o), Ok(e)) => Err(GitError::ProcessError(res.status.code(), o, e)),
                 _ => Err(GitError::ProcessErrorInvalidUtf8(res.status.code())),
             };
         }
@@ -69,7 +68,7 @@ impl GitRepo {
             .output()?;
         if !res.status.success() {
             return match (String::from_utf8(res.stdout), String::from_utf8(res.stderr)) {
-                (Ok(o), Ok(e)) => Err(GitError::ProcessError(res.status.code(),o,e)),
+                (Ok(o), Ok(e)) => Err(GitError::ProcessError(res.status.code(), o, e)),
                 _ => Err(GitError::ProcessErrorInvalidUtf8(res.status.code())),
             };
         }
@@ -92,8 +91,16 @@ impl fmt::Display for GitError {
         match self {
             GitError::ParseError(s) => write!(f, "error parsing git url {}", s),
             GitError::IoError(e) => write!(f, "io error while running git: {}", e),
-            GitError::ProcessError(r, o, e) => write!(f, "git returned a non-zero status code: {:?}\nstdout:\n{}\nstderr:\n{}", r, o, e),
-            GitError::ProcessErrorInvalidUtf8(r) => write!(f, "git returned a non-zero status code and had invalid utf8 in stderr: {:?}", r),
+            GitError::ProcessError(r, o, e) => write!(
+                f,
+                "git returned a non-zero status code: {:?}\nstdout:\n{}\nstderr:\n{}",
+                r, o, e
+            ),
+            GitError::ProcessErrorInvalidUtf8(r) => write!(
+                f,
+                "git returned a non-zero status code and had invalid utf8 in stderr: {:?}",
+                r
+            ),
         }
     }
 }

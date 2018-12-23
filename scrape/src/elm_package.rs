@@ -14,19 +14,19 @@
 //! ```
 //!
 
-use crate::git_repo::{GitRepo, GitError};
-use crate::repo_cache::RepoCacheOptions;
 use crate::chromium_dl::{chrome_dl, ChromeError};
+use crate::git_repo::{GitError, GitRepo};
+use crate::repo_cache::RepoCacheOptions;
 use fn_search_backend_parsers::{get_elm_exports, ElmExports};
-use serde_derive::Deserialize;
-use std::{fmt, error::Error};
-use std::io::{self, Read};
-use serde::de::IgnoredAny;
-use std::path::Path;
-use select::document::Document;
-use select::predicate::{Predicate, Class, Attr};
 use glob::{glob, GlobError, PatternError};
+use select::document::Document;
+use select::predicate::{Attr, Class, Predicate};
+use serde::de::IgnoredAny;
+use serde_derive::Deserialize;
 use std::fs::File;
+use std::io::{self, Read};
+use std::path::Path;
+use std::{error::Error, fmt};
 
 const PACKAGES_BASE_URL: &str = "https://package.elm-lang.org";
 const PACKAGES_SEARCH_URL: &str = "https://package.elm-lang.org/search.json";
@@ -79,7 +79,10 @@ impl ElmPackage {
 
     // get the exports of a elm package
     // returns an error, or a vector of results which are either ElmFiles, or the path to a file that failed to parse
-    pub fn get_exports(&self, o: &RepoCacheOptions) -> Result<Vec<Result<ElmFile, String>>, ElmPackageError> {
+    pub fn get_exports(
+        &self,
+        o: &RepoCacheOptions,
+    ) -> Result<Vec<Result<ElmFile, String>>, ElmPackageError> {
         let mut exports = vec![];
         let path = self.get_repo_path(&o)?;
         for res in glob(format!("{}/src/**/*.elm", path).as_str())? {
@@ -89,12 +92,10 @@ impl ElmPackage {
             let mut elm_code = String::new();
             file.read_to_string(&mut elm_code)?;
             match get_elm_exports(elm_code.as_str()) {
-                Ok(e) => exports.push(Ok(
-                    ElmFile{
-                        path: path.to_str().unwrap_or_default().to_string(),
-                        exports: e,
-                    }
-                )),
+                Ok(e) => exports.push(Ok(ElmFile {
+                    path: path.to_str().unwrap_or_default().to_string(),
+                    exports: e,
+                })),
                 Err(_) => exports.push(Err(path.to_str().unwrap_or_default().to_string())),
             };
         }

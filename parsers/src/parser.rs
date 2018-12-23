@@ -1,4 +1,3 @@
-
 use crate::helpers::{
     is_alphanumeric,
     is_space_or_newline,
@@ -29,8 +28,6 @@ named!(pub function_or_type<&str, TypeOrFunction>,
     map!(
         delimited!(
             do_parse!(
-                many0!(comments) >>
-                take_while!(is_space_or_newline) >>
                 many0!(comments) >>
                 take_while!(is_space_or_newline) >>
                 ()
@@ -141,49 +138,57 @@ named!(pub function<&str, ElmCode>,
     )
 );
 
+// fails when module appears in comments before module statements
 named!(pub elm_mod_def<&str, ElmModule>,
-    alt!(
-        do_parse!(
-            take_until!("module") >>
-            tag!("module") >>
-            take_until!("exposing") >>
-            tag!("exposing") >>
-            multi_spaces_or_new_line_or_comma >>
-            char!('(') >>
-            exposed: alt!(expose_all | expose_functions_and_types) >>
-            char!(')') >>
-            (exposed)
-        ) |
-        do_parse!(
-            take_until!("effect") >>
-            tag!("effect") >>
-            take_until!("module") >>
-            tag!("module") >>
-            take_until!("exposing") >>
-            tag!("exposing") >>
-            multi_spaces_or_new_line_or_comma >>
-            char!('(') >>
-            exposed: alt!(expose_all | expose_functions_and_types) >>
-            char!(')') >>
-            (exposed)
-        )
+    do_parse!(
+        take_until!("module") >>
+        tag!("module") >>
+        take_until!("exposing") >>
+        tag!("exposing") >>
+        multi_spaces_or_new_line_or_comma >>
+        char!('(') >>
+        exposed: alt!(expose_all | expose_functions_and_types) >>
+        char!(')') >>
+        (exposed)
     )
 );
 
 named!(pub elm<&str, (ElmModule, Vec<ElmCode>)>,
-    do_parse!(
-        exposed: elm_mod_def >>
-        defs: many0!(alt!(
-                complete!(ignore_comments) |
-                complete!(function) |
-                complete!(ignore_any)
-            )) >>
-        (
-            exposed,
-            defs.into_iter()
-                .filter(|w| w != &ElmCode::Ignore).collect::<Vec<ElmCode>>()
+    // alt!(
+        complete!(
+            do_parse!(
+                exposed: elm_mod_def >>
+                defs: many0!(
+                        alt!(
+                            complete!(ignore_comments) |
+                            complete!(function) |
+                            complete!(ignore_any)
+                        )
+                ) >>
+                (
+                    exposed,
+                    defs.into_iter()
+                        .filter(|w| w != &ElmCode::Ignore)
+                        .collect::<Vec<ElmCode>>()
+                )
+            )
         )
-    )
+        // |
+        // complete!(
+            // do_parse!(
+                // defs: many0!(alt!(
+                        // complete!(ignore_comments) |
+                        // complete!(function) |
+                        // complete!(ignore_any)
+                    // )) >>
+                // (
+                    // ElmModule::List(vec!()),
+                    // defs.into_iter()
+                        // .filter(|w| w != &ElmCode::Ignore).collect::<Vec<ElmCode>>()
+                // )
+            // )
+        // )
+    // )
 );
 
 #[cfg(test)]
@@ -330,7 +335,8 @@ mod tests {
                             }
                         )
                     )
-                ), vec!(
+                ),
+                vec!(
                     ElmCode::Function(
                         Function{
                             name: "test",
@@ -353,7 +359,7 @@ mod tests {
 
     #[test]
     fn file_integration() {
-        let contents = fs::read_to_string("../scrape/target/cache/elm/time/src/Time.elm")
+        let contents = fs::read_to_string("../scrape/target/cache/NoRedInk/elm-plot-19/src/Plot.elm")
             .expect("Something went wrong reading the file");
 
         assert_eq!(

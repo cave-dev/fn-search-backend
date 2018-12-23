@@ -56,7 +56,7 @@ named!(pub function_or_type<&str, TypeOrFunction>,
             // based on the assumption that anything starting with:
             //      lowercase is a function
             //      uppcase is a type
-            if s.chars().next().unwrap().is_lowercase() {
+            if s.chars().next().unwrap_or_else(|| 'a').is_lowercase() {
                 TypeOrFunction::Function(
                     Function{
                         name: s,

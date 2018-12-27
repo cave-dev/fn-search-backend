@@ -2,21 +2,21 @@
 extern crate nom;
 
 pub(crate) mod helpers;
-pub(crate) mod structs;
 pub(crate) mod parser;
+pub(crate) mod structs;
 
+use crate::parser::elm;
+use crate::structs::{ElmCode, ElmModule, Function, Type, TypeOrFunction};
 use hashbrown::HashSet;
 use std::error::Error;
-use crate::structs::{ElmCode, ElmModule, TypeOrFunction, Type, Function};
-use crate::parser::elm;
 
 #[derive(Debug)]
 pub enum ElmExport {
-    Function{
+    Function {
         name: String,
         type_signature: Option<Vec<String>>,
     },
-    Type{
+    Type {
         name: String,
         definition: String,
     },
@@ -29,9 +29,7 @@ pub struct ElmExports {
 
 impl ElmExports {
     fn new() -> ElmExports {
-        ElmExports {
-            exports: vec![],
-        }
+        ElmExports { exports: vec![] }
     }
 }
 
@@ -53,67 +51,61 @@ fn exports_from_module_list(l: &[TypeOrFunction], elm_code: &[ElmCode]) -> ElmEx
     // get a set containing all types & functions that will be exported and we care about
     let to_export: HashSet<&str> = l
         .iter()
-        .map(|export| {
-            match export {
-                TypeOrFunction::Type(Type{ref name, ..}) => {
-                    *name
-                },
-                TypeOrFunction::Function(Function{ref name, ..}) => {
-                    *name
-                },
-            }
+        .map(|export| match export {
+            TypeOrFunction::Type(Type { ref name, .. }) => *name,
+            TypeOrFunction::Function(Function { ref name, .. }) => *name,
         })
         .collect();
     // collect functions and types that are defined in the module exports
     for exp in l.iter() {
         match exp {
-            TypeOrFunction::Type(Type{ref name, definition: Some(def)}) => {
-                exports.exports.push(
-                    ElmExport::Type{
-                        name: String::from(*name),
-                        definition: String::from(*def),
-                    }
-                )
-            },
-            TypeOrFunction::Function(Function{ref name, type_signature: Some(sig)}) => {
-                exports.exports.push(
-                    ElmExport::Function{
-                        name: String::from(*name),
-                        type_signature: Some(sig.clone()),
-                    }
-                )
-            },
+            TypeOrFunction::Type(Type {
+                ref name,
+                definition: Some(def),
+            }) => exports.exports.push(ElmExport::Type {
+                name: String::from(*name),
+                definition: String::from(*def),
+            }),
+            TypeOrFunction::Function(Function {
+                ref name,
+                type_signature: Some(sig),
+            }) => exports.exports.push(ElmExport::Function {
+                name: String::from(*name),
+                type_signature: Some(sig.clone()),
+            }),
             // ignore if there is not an inline definition
-            _ => {},
+            _ => {}
         }
     }
     // collect functions and types from code
     for code_bit in elm_code.iter() {
         match code_bit {
-            ElmCode::Type(Type{ref name, ref definition}) => {
+            ElmCode::Type(Type {
+                ref name,
+                ref definition,
+            }) => {
                 if to_export.contains(*name) {
-                    exports.exports.push(
-                        ElmExport::Type{
-                            name: String::from(*name),
-                            definition: definition
-                                .map(|def| String::from(def))
-                                .unwrap_or_else(|| String::new()),
-                        }
-                    )
+                    exports.exports.push(ElmExport::Type {
+                        name: String::from(*name),
+                        definition: definition
+                            .map(|def| String::from(def))
+                            .unwrap_or_else(|| String::new()),
+                    })
                 }
-            },
-            ElmCode::Function(Function{ref name, ref type_signature}) => {
+            }
+            ElmCode::Function(Function {
+                ref name,
+                ref type_signature,
+            }) => {
                 if to_export.contains(*name) {
-                    exports.exports.push(
-                        ElmExport::Function{
-                            name: String::from(*name),
-                            type_signature: type_signature.clone(),
-                        }
-                    )
+                    exports.exports.push(ElmExport::Function {
+                        name: String::from(*name),
+                        type_signature: type_signature.clone(),
+                    })
                 }
-            },
+            }
             // do nothing
-            _ => {},
+            _ => {}
         }
     }
     exports
@@ -124,26 +116,24 @@ fn exports_from_module_all(elm_code: &[ElmCode]) -> ElmExports {
     // collect functions and types from code
     for code_bit in elm_code.iter() {
         match code_bit {
-            ElmCode::Type(Type{ref name, ref definition}) => {
-                exports.exports.push(
-                    ElmExport::Type{
-                        name: String::from(*name),
-                        definition: definition
-                            .map(|def| String::from(def))
-                            .unwrap_or_else(|| String::new()),
-                    }
-                )
-            },
-            ElmCode::Function(Function{ref name, ref type_signature}) => {
-                exports.exports.push(
-                    ElmExport::Function{
-                        name: String::from(*name),
-                        type_signature: type_signature.clone(),
-                    }
-                )
-            },
+            ElmCode::Type(Type {
+                ref name,
+                ref definition,
+            }) => exports.exports.push(ElmExport::Type {
+                name: String::from(*name),
+                definition: definition
+                    .map(|def| String::from(def))
+                    .unwrap_or_else(|| String::new()),
+            }),
+            ElmCode::Function(Function {
+                ref name,
+                ref type_signature,
+            }) => exports.exports.push(ElmExport::Function {
+                name: String::from(*name),
+                type_signature: type_signature.clone(),
+            }),
             // do nothing
-            _ => {},
+            _ => {}
         }
     }
     exports

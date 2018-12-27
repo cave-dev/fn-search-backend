@@ -1,18 +1,9 @@
 use crate::helpers::{
-    is_alphanumeric,
-    is_operator,
-    is_space_or_newline,
+    is_allowed_for_types_and_functions, is_alphanumeric, is_operator, is_space_or_newline,
     is_space_or_newline_or_comma,
-    is_allowed_for_types_and_functions,
 };
 
-use crate::structs::{
-    ElmModule,
-    TypeOrFunction,
-    Type,
-    Function,
-    ElmCode,
-};
+use crate::structs::{ElmCode, ElmModule, Function, Type, TypeOrFunction};
 
 named!(pub expose_all<&str, ElmModule>,
     map!(tag!(".."), |_| ElmModule::All)
@@ -208,9 +199,7 @@ mod tests {
     fn multiline_comment() {
         assert_eq!(
             ignore_comments("{- \nhello world \n-}"),
-            Ok(("",
-                ElmCode::Comment
-            ))
+            Ok(("", ElmCode::Comment))
         );
     }
 
@@ -218,9 +207,7 @@ mod tests {
     fn singleline_comment() {
         assert_eq!(
             ignore_comments("-- hello world\nhello"),
-            Ok(("hello",
-                ElmCode::Comment
-            ))
+            Ok(("hello", ElmCode::Comment))
         );
     }
 
@@ -229,7 +216,8 @@ mod tests {
         named!(test<&str, Vec<ElmCode>>, many1!(complete!(ignore_any)));
         assert_eq!(
             test("t s "),
-            Ok(("",
+            Ok((
+                "",
                 vec!(
                     ElmCode::Ignore,
                     ElmCode::Ignore,
@@ -244,19 +232,16 @@ mod tests {
     fn function_type_signature() {
         assert_eq!(
             function("\ntest : Int -> List Int -> \nInt\ntest"),
-            Ok(("",
-                ElmCode::Function(
-                    Function{
-                        name: "test",
-                        type_signature:
-                        Some(vec!(
-                            "Int".to_string(),
-                            "List Int".to_string(),
-                            "Int".to_string()
-                        )
-                        )
-                    }
-                )
+            Ok((
+                "",
+                ElmCode::Function(Function {
+                    name: "test",
+                    type_signature: Some(vec!(
+                        "Int".to_string(),
+                        "List Int".to_string(),
+                        "Int".to_string()
+                    ))
+                })
             ))
         );
     }
@@ -273,14 +258,12 @@ mod tests {
     fn expose_one_type_works() {
         assert_eq!(
             elm_mod_def("module Main exposing (test0)"),
-            Ok(("",
-                ElmModule::List(
-                    vec!(
-                        TypeOrFunction::Function(
-                            Function{name: "test0", type_signature: None}
-                        ),
-                    )
-                )
+            Ok((
+                "",
+                ElmModule::List(vec!(TypeOrFunction::Function(Function {
+                    name: "test0",
+                    type_signature: None
+                }),))
             ))
         );
     }
@@ -289,17 +272,18 @@ mod tests {
     fn expose_many_types_works() {
         assert_eq!(
             elm_mod_def("module Main exposing (Test0, test1)"),
-            Ok(("",
-                ElmModule::List(
-                    vec!(
-                        TypeOrFunction::Type(
-                            Type{name: "Test0", definition: None}
-                        ),
-                        TypeOrFunction::Function(
-                            Function{name: "test1", type_signature: None}
-                        ),
-                    )
-                )
+            Ok((
+                "",
+                ElmModule::List(vec!(
+                    TypeOrFunction::Type(Type {
+                        name: "Test0",
+                        definition: None
+                    }),
+                    TypeOrFunction::Function(Function {
+                        name: "test1",
+                        type_signature: None
+                    }),
+                ))
             ))
         );
     }
@@ -308,24 +292,26 @@ mod tests {
     fn newline_separator() {
         assert_eq!(
             elm_mod_def("module Utils.Time\n   exposing\n  ( a\n , b\n , c\n , d\n   )"),
-
-            Ok(("",
-                ElmModule::List(
-                    vec!(
-                        TypeOrFunction::Function(
-                            Function{name: "a", type_signature: None}
-                        ),
-                        TypeOrFunction::Function(
-                            Function{name: "b", type_signature: None}
-                        ),
-                        TypeOrFunction::Function(
-                            Function{name: "c", type_signature: None}
-                        ),
-                        TypeOrFunction::Function(
-                            Function{name: "d", type_signature: None}
-                        ),
-                    )
-                )
+            Ok((
+                "",
+                ElmModule::List(vec!(
+                    TypeOrFunction::Function(Function {
+                        name: "a",
+                        type_signature: None
+                    }),
+                    TypeOrFunction::Function(Function {
+                        name: "b",
+                        type_signature: None
+                    }),
+                    TypeOrFunction::Function(Function {
+                        name: "c",
+                        type_signature: None
+                    }),
+                    TypeOrFunction::Function(Function {
+                        name: "d",
+                        type_signature: None
+                    }),
+                ))
             ))
         );
     }
@@ -334,135 +320,92 @@ mod tests {
     fn integration() {
         assert_eq!(
             elm("module Utils exposing (test)\ntest : Int -> List Int -> Int\ntest"),
-            Ok(("",
-                (ElmModule::List(
-                    vec!(
-                        TypeOrFunction::Function(
-                            Function{
-                                name: "test",
-                                type_signature: None
-                            }
-                        )
-                    )
-                ),
-                vec!(
-                    ElmCode::Function(
-                        Function{
-                            name: "test",
-                            type_signature: Some(
-                                vec!(
-                                    "Int".to_string(),
-                                    "List Int".to_string(),
-                                    "Int".to_string()
-                                )
-                            )
-                        }
-                    )
-                ))
+            Ok((
+                "",
+                (
+                    ElmModule::List(vec!(TypeOrFunction::Function(Function {
+                        name: "test",
+                        type_signature: None
+                    }))),
+                    vec!(ElmCode::Function(Function {
+                        name: "test",
+                        type_signature: Some(vec!(
+                            "Int".to_string(),
+                            "List Int".to_string(),
+                            "Int".to_string()
+                        ))
+                    }))
+                )
             ))
         );
     }
 
     use std::fs;
 
-
     #[test]
     fn file_integration() {
-        let contents = fs::read_to_string("Main.elm")
-            .expect("Something went wrong reading the file");
+        let contents =
+            fs::read_to_string("Main.elm").expect("Something went wrong reading the file");
 
         assert_eq!(
             elm(&contents),
-            Ok(("",
-                (ElmModule::All,
-                 vec!(
-                     ElmCode::Function(
-                         Function{
-                             name: "subscriptions",
-                             type_signature: Some(
-                                 vec!(
-                                     "Model".to_string(),
-                                     "Sub Msg".to_string(),
-                                 )
-                             )
-                         }
-                     ),
-                     ElmCode::Function(
-                         Function{
-                             name: "init",
-                             type_signature: Some(
-                                 vec!(
-                                     "Int".to_string(),
-                                     "( Model, Cmd Msg )".to_string(),
-                                 )
-                             )
-                         }
-                     ),
-                     ElmCode::Function(
-                         Function{
-                             name: "update",
-                             type_signature: Some(
-                                 vec!(
-                                     "Msg".to_string(),
-                                     "Model".to_string(),
-                                     "( Model, Cmd Msg )".to_string(),
-                                 )
-                             )
-                         }
-                     ),
-                     ElmCode::Function(
-                         Function{
-                             name: "functionView",
-                             type_signature: Some(
-                                 vec!(
-                                     "SearchResult".to_string(),
-                                     "Html Msg".to_string(),
-                                 )
-                             )
-                         }
-                     ),
-                     ElmCode::Function(
-                         Function{
-                             name: "view",
-                             type_signature: Some(
-                                 vec!(
-                                     "Model".to_string(),
-                                     "Html Msg".to_string(),
-                                 )
-                             )
-                         }
-                     ),
-                     ElmCode::Function(
-                         Function{
-                             name: "searchResultDecoder",
-                             type_signature: Some(
-                                 vec!(
-                                     "Decode.Decoder (List SearchResult)".to_string(),
-                                 )
-                             )
-                         }
-                     ),
-                     ElmCode::Function(
-                         Function{
-                             name: "repoDecoder",
-                             type_signature: Some(
-                                 vec!(
-                                     "Decode.Decoder SearchResultRepo".to_string(),
-                                 )
-                             )
-                         }
-                     ),
-                     ElmCode::Function(
-                         Function{
-                             name: "resDecoder",
-                             type_signature: Some(
-                                 vec!(
-                                     "Decode.Decoder SearchResultFn".to_string(),
-                                 )
-                             )
-                         }
-                     ),
-                 ))
+            Ok((
+                "",
+                (
+                    ElmModule::All,
+                    vec!(
+                        ElmCode::Function(Function {
+                            name: "subscriptions",
+                            type_signature: Some(vec!("Model".to_string(), "Sub Msg".to_string(),))
+                        }),
+                        ElmCode::Function(Function {
+                            name: "init",
+                            type_signature: Some(vec!(
+                                "Int".to_string(),
+                                "( Model, Cmd Msg )".to_string(),
+                            ))
+                        }),
+                        ElmCode::Function(Function {
+                            name: "update",
+                            type_signature: Some(vec!(
+                                "Msg".to_string(),
+                                "Model".to_string(),
+                                "( Model, Cmd Msg )".to_string(),
+                            ))
+                        }),
+                        ElmCode::Function(Function {
+                            name: "functionView",
+                            type_signature: Some(vec!(
+                                "SearchResult".to_string(),
+                                "Html Msg".to_string(),
+                            ))
+                        }),
+                        ElmCode::Function(Function {
+                            name: "view",
+                            type_signature: Some(
+                                vec!("Model".to_string(), "Html Msg".to_string(),)
+                            )
+                        }),
+                        ElmCode::Function(Function {
+                            name: "searchResultDecoder",
+                            type_signature: Some(vec!(
+                                "Decode.Decoder (List SearchResult)".to_string(),
+                            ))
+                        }),
+                        ElmCode::Function(Function {
+                            name: "repoDecoder",
+                            type_signature: Some(vec!(
+                                "Decode.Decoder SearchResultRepo".to_string(),
+                            ))
+                        }),
+                        ElmCode::Function(Function {
+                            name: "resDecoder",
+                            type_signature: Some(
+                                vec!("Decode.Decoder SearchResultFn".to_string(),)
+                            )
+                        }),
+                    )
+                )
             ))
         );
     }

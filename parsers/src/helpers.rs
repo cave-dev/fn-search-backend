@@ -7,7 +7,9 @@ pub fn is_alphanumeric(c: char) -> bool {
 }
 
 pub fn is_operator(c: char) -> bool {
-    ['+', '-', '/', '*', '^', '=', '>', '<', '&', '|'].iter().any(|&x| x == c)
+    ['+', '-', '/', '*', '^', '=', '>', '<', '&', '|']
+        .iter()
+        .any(|&x| x == c)
 }
 
 pub fn is_allowed_for_types_and_functions(c: char) -> bool {

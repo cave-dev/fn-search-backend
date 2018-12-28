@@ -2,6 +2,8 @@
 
 use crate::elm_package::{ElmPackage, ElmPackageError};
 use crate::git_repo::GitError;
+use crate::db_queries::{update_url, UpdateUrlError};
+use fn_search_backend::DbConfig;
 use std::path::Path;
 use std::{error::Error, fmt};
 
@@ -33,9 +35,10 @@ pub enum SyncResult {
 ///     });
 /// // Potentially do something with the results/errors
 /// ```
-pub fn sync_repo(m: &ElmPackage, o: &RepoCacheOptions) -> Result<SyncResult, SyncRepoError> {
+pub fn sync_repo(m: &ElmPackage, o: &RepoCacheOptions, db_cfg: &DbConfig) -> Result<SyncResult, SyncRepoError> {
     let repo_path = m.get_repo_path(o)?;
     let git_repo = m.find_git_repo(o)?;
+    update_url(&db_cfg, m.name.as_str(), git_repo.url.as_str())?;
     if Path::new(repo_path.as_str()).exists() {
         git_repo.update_repo(repo_path.as_str(), &o)?;
         Ok(SyncResult::Update)
@@ -49,6 +52,7 @@ pub fn sync_repo(m: &ElmPackage, o: &RepoCacheOptions) -> Result<SyncResult, Syn
 pub enum SyncRepoError {
     GitError(GitError),
     ElmPackageError(ElmPackageError),
+    UpdateUrlError(UpdateUrlError),
 }
 
 impl Error for SyncRepoError {}
@@ -58,6 +62,7 @@ impl fmt::Display for SyncRepoError {
         match self {
             SyncRepoError::GitError(e) => write!(f, "{}", e),
             SyncRepoError::ElmPackageError(e) => write!(f, "{}", e),
+            SyncRepoError::UpdateUrlError(e) => write!(f, "{}", e),
         }
     }
 }
@@ -71,5 +76,11 @@ impl From<GitError> for SyncRepoError {
 impl From<ElmPackageError> for SyncRepoError {
     fn from(e: ElmPackageError) -> Self {
         SyncRepoError::ElmPackageError(e)
+    }
+}
+
+impl From<UpdateUrlError> for SyncRepoError {
+    fn from(e: UpdateUrlError) -> Self {
+        SyncRepoError::UpdateUrlError(e)
     }
 }

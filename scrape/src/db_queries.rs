@@ -39,26 +39,21 @@ pub fn update_url(cfg: &DbConfig, repo: &str, url: &str) -> Result<(), UpdateUrl
             name: repo,
             url,
         };
-        let res = diesel::insert_into(repositories::table)
-            .values(&new_repo)
-            // insert or do nothing
-            .on_conflict(repositories::name)
-            .do_nothing()
-            .get_result::<Repository>(&conn).optional()?;
-        // if we inserted something, we are done
-        if let Some(_) = res {
-            return Ok(());
-        }
         let mut repos = repositories::table
             .filter(repositories::name.eq(&repo))
             .limit(1)
             .load::<Repository>(&conn)?;
-        let mut repo = match repos.pop() {
-            Some(r) => r,
-            None => return Err(UpdateUrlError::RepoNotFound),
+        match repos.pop() {
+            Some(mut repo) => {
+                repo.url = url.to_string();
+                repo.save_changes::<Repository>(&conn)?;
+            },
+            None => {
+                diesel::insert_into(repositories::table)
+                    .values(&new_repo)
+                    .execute(&conn)?;
+            },
         };
-        repo.url = url.to_string();
-        repo.save_changes::<Repository>(&conn)?;
         Ok(())
     })?;
     Ok(())

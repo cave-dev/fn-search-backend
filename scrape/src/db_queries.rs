@@ -8,6 +8,7 @@ use std::fmt;
 pub enum UpdateUrlError {
     DieselConnectionError(diesel::result::ConnectionError),
     DieselError(diesel::result::Error),
+    RepoNotFound,
 }
 
 impl Error for UpdateUrlError {}
@@ -33,16 +34,32 @@ impl From<diesel::result::ConnectionError> for UpdateUrlError {
 pub fn update_url(cfg: &DbConfig, repo: &str, url: &str) -> Result<(), UpdateUrlError> {
     let db_url = get_db_url(&cfg);
     let conn = PgConnection::establish(db_url.as_str())?;
-    let repo = NewRepository{
-        name: repo,
-        url,
-    };
-    diesel::insert_into(repositories::table)
-        .values(&repo)
-        // insert or update
-        .on_conflict(repositories::name)
-        .do_update()
-        .set(&repo)
-        .execute(&conn)?;
+    conn.transaction(|| -> Result<(), UpdateUrlError> {
+        let new_repo = NewRepository{
+            name: repo,
+            url,
+        };
+        let res = diesel::insert_into(repositories::table)
+            .values(&new_repo)
+            // insert or do nothing
+            .on_conflict(repositories::name)
+            .do_nothing()
+            .get_result::<Repository>(&conn).optional()?;
+        // if we inserted something, we are done
+        if let Some(_) = res {
+            return Ok(());
+        }
+        let mut repos = repositories::table
+            .filter(repositories::name.eq(&repo))
+            .limit(1)
+            .load::<Repository>(&conn)?;
+        let mut repo = match repos.pop() {
+            Some(r) => r,
+            None => return Err(UpdateUrlError::RepoNotFound),
+        };
+        repo.url = url.to_string();
+        repo.save_changes::<Repository>(&conn)?;
+        Ok(())
+    })?;
     Ok(())
 }

@@ -1,6 +1,7 @@
 use crate::schema::*;
 
-#[derive(Queryable, Clone, Debug, Serialize, Deserialize)]
+#[derive(Queryable, Clone, Debug, Serialize, Deserialize, AsChangeset, Identifiable)]
+#[table_name = "repositories"]
 pub struct Repository {
     pub id: i32,
     pub name: String,

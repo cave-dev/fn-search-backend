@@ -54,7 +54,7 @@ impl GitRepo {
     pub fn update_repo(&self, repo_path: &str, o: &RepoCacheOptions) -> Result<(), GitError> {
         let res = Command::new(o.git_bin_path.as_str())
             .env("GIT_TERMINAL_PROMPT", "0")
-            .args(&["-C", repo_path, "pull", "--depth", "1", "--tags"])
+            .args(&["-C", repo_path, "fetch", "--depth", "1", "--tags", "origin"])
             .output()?;
         if !res.status.success() {
             return match (String::from_utf8(res.stdout), String::from_utf8(res.stderr)) {
@@ -64,7 +64,7 @@ impl GitRepo {
         }
         let res = Command::new(o.git_bin_path.as_str())
             .env("GIT_TERMINAL_PROMPT", "0")
-            .args(&["-C", repo_path, "checkout", self.version.as_str()])
+            .args(&["-C", repo_path, "reset", "--hard", self.version.as_str()])
             .output()?;
         if !res.status.success() {
             return match (String::from_utf8(res.stdout), String::from_utf8(res.stderr)) {

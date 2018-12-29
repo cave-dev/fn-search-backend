@@ -12,17 +12,17 @@
 //!   * Insert exported functions and types into the database
 
 pub mod chromium_dl;
+pub mod db_queries;
 pub mod elm_package;
 pub mod git_repo;
 pub mod repo_cache;
-pub mod db_queries;
 
 use crate::elm_package::{ElmPackage, ElmPackageError};
 use crate::repo_cache::{sync_repo, RepoCacheOptions, SyncRepoError, SyncResult};
 use clap::{clap_app, crate_authors, crate_description, crate_version, ArgMatches};
+use fn_search_backend::{get_config, Config};
 use rayon::prelude::*;
 use std::error::Error;
-use fn_search_backend::{Config, get_config};
 
 fn sync(cfg: &Config, cache_config: &RepoCacheOptions) -> Result<(), Box<Error>> {
     let elm_libs = elm_package::get_elm_libs()?;
@@ -40,9 +40,7 @@ fn sync(cfg: &Config, cache_config: &RepoCacheOptions) -> Result<(), Box<Error>>
             Err(e) => {
                 match &e {
                     // chrome doesn't finish downloading the page sometimes, try again
-                    SyncRepoError::ElmPackageError(ElmPackageError::CantFindUrl(_)) => {
-                        Some(r.0)
-                    }
+                    SyncRepoError::ElmPackageError(ElmPackageError::CantFindUrl(_)) => Some(r.0),
                     _ => {
                         eprintln!("error syncing repo {}: {}", r.0.name, e);
                         None
@@ -104,7 +102,7 @@ fn main() -> Result<(), Box<Error>> {
         (author: crate_authors!())
         (about: crate_description!())
         (@arg CACHE_DIR: -d --("cache-dir") +takes_value +required "directory for repositories to be cached in")
-        (@arg CHROME: -c --chrome +takes_value +required default_value("chromium") "google chrome or chromium executable")
+        (@arg CHROME: -h --chrome +takes_value +required default_value("chromium") "google chrome or chromium executable")
         (@arg GIT: -g --git +takes_value +required default_value("git") "git executable")
         (@arg CONFIG: -c --config +takes_value +required "configuration file")
         (@subcommand sync =>

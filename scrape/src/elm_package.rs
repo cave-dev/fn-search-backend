@@ -83,24 +83,23 @@ impl ElmPackage {
         &self,
         o: &RepoCacheOptions,
     ) -> Result<Vec<Result<ElmFile, String>>, ElmPackageError> {
-        let mut exports = vec![];
         let path = self.get_repo_path(&o)?;
-        for res in glob(format!("{}/src/**/*.elm", path).as_str())? {
+        let f_iter = glob(format!("{}/src/**/*.elm", path).as_str())?;
+        f_iter.map(|res| -> Result<Result<ElmFile, String>, ElmPackageError> {
             let res = res?;
             let path = res.as_path();
             let mut file = File::open(path)?;
             let mut elm_code = String::new();
             file.read_to_string(&mut elm_code)?;
             match get_elm_exports(elm_code.as_str()) {
-                Ok(e) => exports.push(Ok(ElmFile {
+                Ok(e) => Ok(Ok(ElmFile {
                     repository: path.to_str().expect("cache path was not convertible into a string").to_string(),
                     path: path.to_str().unwrap_or_default().to_string(),
                     exports: e,
                 })),
-                Err(_) => exports.push(Err(path.to_str().unwrap_or_default().to_string())),
-            };
-        }
-        Ok(exports)
+                Err(_) => Ok(Err(path.to_str().unwrap_or_default().to_string())),
+            }
+        }).collect()
     }
 }
 

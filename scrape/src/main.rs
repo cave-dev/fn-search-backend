@@ -131,7 +131,7 @@ fn parse(cfg: &Config, cache_config: &RepoCacheOptions) -> Result<(), Box<Error>
 }
 
 fn main() -> Result<(), Box<Error>> {
-    let matches: ArgMatches = clap_app!(myapp =>
+    let matches: ArgMatches = clap_app!(fn_search_backend_scrape =>
         (version: crate_version!())
         (author: crate_authors!())
         (about: crate_description!())

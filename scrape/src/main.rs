@@ -17,12 +17,14 @@ pub mod elm_package;
 pub mod git_repo;
 pub mod repo_cache;
 
-use crate::elm_package::{ElmPackage, ElmPackageError};
+use crate::db_queries::{insert_functions};
+use crate::elm_package::{ElmPackage, ElmFile, ElmPackageError};
 use crate::repo_cache::{sync_repo, RepoCacheOptions, SyncRepoError, SyncResult};
 use clap::{clap_app, crate_authors, crate_description, crate_version, ArgMatches};
 use fn_search_backend::{get_config, Config};
 use rayon::prelude::*;
 use std::error::Error;
+use std::collections::HashMap;
 
 fn sync(cfg: &Config, cache_config: &RepoCacheOptions) -> Result<(), Box<Error>> {
     let elm_libs = elm_package::get_elm_libs()?;
@@ -67,13 +69,15 @@ fn sync(cfg: &Config, cache_config: &RepoCacheOptions) -> Result<(), Box<Error>>
     Ok(())
 }
 
-fn parse(cache_config: &RepoCacheOptions) -> Result<(), Box<Error>> {
+fn parse(cfg: &Config, cache_config: &RepoCacheOptions) -> Result<(), Box<Error>> {
     let elm_libs = elm_package::get_elm_libs()?;
     // try to parse each elm file
+    let repo_exports: HashMap<String, Vec<ElmFile>> = HashMap::new();
+
     elm_libs
-        .par_iter()
-        .map(|i| i.get_exports(&cache_config))
-        .for_each(|res| match res {
+        .iter()
+        .map(|i| (i, i.get_exports(&cache_config)))
+        .fold(repo_exports, |mut repo_exports, res| match res.1 {
             Ok(file_res_vec) => {
                 for file_res in file_res_vec {
                     match file_res {
@@ -82,15 +86,45 @@ fn parse(cache_config: &RepoCacheOptions) -> Result<(), Box<Error>> {
                                 "successfully parsed file {}: {:?}",
                                 elm_file.path, elm_file.exports
                             );
+                            match res.0.get_repo_path(cache_config) {
+                                Ok(repo_path) => {
+                                    match repo_exports.get(&repo_path) {
+                                        Some(elm_files) => {
+                                            let mut new_elm_files = elm_files.clone();
+                                            new_elm_files.push(elm_file);
+                                            repo_exports.insert(res.0.name.to_string(), new_elm_files.to_vec());
+
+                                        },
+                                        None => {
+                                            repo_exports.insert(res.0.name.to_string(), vec!(elm_file));
+                                        },
+                                    }
+                                },
+
+                                ElmPackageError => {
+                                    eprintln!("Something went wrong");
+                                }
+                            }
                         }
                         Err(e) => {
                             eprintln!("error while parsing file: {}", e);
                         }
                     }
                 }
+                repo_exports
             }
             Err(e) => {
                 eprintln!("error while trying to parse elm files: {}", e);
+                repo_exports
+            }
+        })
+        .iter()
+        .for_each(|(name, exports)| {
+            match insert_functions(&cfg.db, name, exports) {
+                Ok(()) => {
+                    println!("Done inserting");
+                },
+                UpdateUrlError => eprintln!("something went wrong"),
             }
         });
     Ok(())
@@ -128,7 +162,7 @@ fn main() -> Result<(), Box<Error>> {
     if let Some(_) = matches.subcommand_matches("sync") {
         sync(&config, &cache_config)?;
     } else if let Some(_) = matches.subcommand_matches("parse") {
-        parse(&cache_config)?;
+        parse(&config, &cache_config)?;
     } else {
         eprintln!("usage: fn_search_backend_scrape --help");
     }

@@ -93,7 +93,10 @@ impl ElmPackage {
             file.read_to_string(&mut elm_code)?;
             match get_elm_exports(elm_code.as_str()) {
                 Ok(e) => exports.push(Ok(ElmFile {
-                    repository: path.to_str().expect("cache path was not convertible into a string").to_string(),
+                    repository: path
+                        .to_str()
+                        .expect("cache path was not convertible into a string")
+                        .to_string(),
                     path: path.to_str().unwrap_or_default().to_string(),
                     exports: e,
                 })),
@@ -104,7 +107,7 @@ impl ElmPackage {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ElmFile {
     pub repository: String,
     pub path: String,

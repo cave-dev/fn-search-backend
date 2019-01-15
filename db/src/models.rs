@@ -34,4 +34,5 @@ impl PartialEq for Function {
 pub struct NewFunction<'a> {
     pub repo_id: i32,
     pub type_signature: &'a str,
+    pub name: &'a str,
 }

@@ -8,9 +8,8 @@ pub(crate) mod structs;
 use crate::parser::elm;
 use crate::structs::{ElmCode, ElmModule, Function, Type, TypeOrFunction};
 use hashbrown::HashSet;
-use std::error::Error;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ElmExport {
     Function {
         name: String,
@@ -22,9 +21,9 @@ pub enum ElmExport {
     },
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ElmExports {
-    exports: Vec<ElmExport>,
+    pub exports: Vec<ElmExport>,
 }
 
 impl ElmExports {

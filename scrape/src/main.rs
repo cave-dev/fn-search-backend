@@ -17,14 +17,14 @@ pub mod elm_package;
 pub mod git_repo;
 pub mod repo_cache;
 
-use crate::db_queries::{insert_functions};
-use crate::elm_package::{ElmPackage, ElmFile, ElmPackageError};
+use crate::db_queries::insert_functions;
+use crate::elm_package::{ElmFile, ElmPackage, ElmPackageError};
 use crate::repo_cache::{sync_repo, RepoCacheOptions, SyncRepoError, SyncResult};
 use clap::{clap_app, crate_authors, crate_description, crate_version, ArgMatches};
 use fn_search_backend::{get_config, Config};
 use rayon::prelude::*;
-use std::error::Error;
 use std::collections::HashMap;
+use std::error::Error;
 
 fn sync(cfg: &Config, cache_config: &RepoCacheOptions) -> Result<(), Box<Error>> {
     let elm_libs = elm_package::get_elm_libs()?;
@@ -87,17 +87,15 @@ fn parse(cfg: &Config, cache_config: &RepoCacheOptions) -> Result<(), Box<Error>
                                 elm_file.path, elm_file.exports
                             );
                             match res.0.get_repo_path(cache_config) {
-                                Ok(repo_path) => {
-                                    match repo_exports.get(&repo_path) {
-                                        Some(elm_files) => {
-                                            let mut new_elm_files = elm_files.clone();
-                                            new_elm_files.push(elm_file);
-                                            repo_exports.insert(res.0.name.to_string(), new_elm_files.to_vec());
-
-                                        },
-                                        None => {
-                                            repo_exports.insert(res.0.name.to_string(), vec!(elm_file));
-                                        },
+                                Ok(repo_path) => match repo_exports.get(&repo_path) {
+                                    Some(elm_files) => {
+                                        let mut new_elm_files = elm_files.clone();
+                                        new_elm_files.push(elm_file);
+                                        repo_exports
+                                            .insert(res.0.name.to_string(), new_elm_files.to_vec());
+                                    }
+                                    None => {
+                                        repo_exports.insert(res.0.name.to_string(), vec![elm_file]);
                                     }
                                 },
 
@@ -119,14 +117,14 @@ fn parse(cfg: &Config, cache_config: &RepoCacheOptions) -> Result<(), Box<Error>
             }
         })
         .iter()
-        .for_each(|(name, exports)| {
-            match insert_functions(&cfg.db, name, exports) {
+        .for_each(
+            |(name, exports)| match insert_functions(&cfg.db, name, exports) {
                 Ok(()) => {
                     println!("Done inserting");
-                },
+                }
                 UpdateUrlError => eprintln!("something went wrong"),
-            }
-        });
+            },
+        );
     Ok(())
 }
 

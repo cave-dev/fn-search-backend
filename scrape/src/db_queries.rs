@@ -128,3 +128,10 @@ pub fn insert_functions(
     };
     Ok(())
 }
+
+pub fn refresh_repo_func_mat_view(cfg: &DbConfig) -> Result<(), Box<Error>> {
+    let db_url = get_db_url(&cfg);
+    let conn = PgConnection::establish(db_url.as_str())?;
+    diesel::sql_query("REFRESH MATERIALIZED VIEW repository_function_mat_view").execute(&conn)?;
+    Ok(())
+}

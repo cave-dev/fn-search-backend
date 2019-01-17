@@ -17,7 +17,7 @@ pub mod elm_package;
 pub mod git_repo;
 pub mod repo_cache;
 
-use crate::db_queries::insert_functions;
+use crate::db_queries::{insert_functions, refresh_repo_func_mat_view};
 use crate::elm_package::{ElmFile, ElmPackage, ElmPackageError};
 use crate::repo_cache::{sync_repo, RepoCacheOptions, SyncRepoError, SyncResult};
 use clap::{clap_app, crate_authors, crate_description, crate_version, ArgMatches};
@@ -125,6 +125,7 @@ fn parse(cfg: &Config, cache_config: &RepoCacheOptions) -> Result<(), Box<Error>
                 UpdateUrlError => eprintln!("something went wrong"),
             },
         );
+    refresh_repo_func_mat_view(&cfg.db)?;
     Ok(())
 }
 

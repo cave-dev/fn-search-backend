@@ -1,0 +1,1 @@
+DROP MATERIALIZED VIEW repository_function_mat_view;

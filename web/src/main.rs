@@ -26,12 +26,14 @@ use actix_web::{
 };
 use fn_search_backend::get_config;
 use fn_search_backend_db::utils::get_db_url;
+use percent_encoding::percent_decode;
 use r2d2::Pool;
 use r2d2_diesel::ConnectionManager;
 use std::sync::Arc;
 
 fn search(req: &HttpRequest<AppState>) -> Result<impl Responder> {
     let sig: String = req.match_info().query("type_signature")?;
+    let sig = percent_decode(sig.as_bytes()).decode_utf8()?.to_string();
     let cache: Arc<FnCache> = req.state().get_fn_cache();
     let conn = req
         .state()
@@ -49,6 +51,7 @@ fn search(req: &HttpRequest<AppState>) -> Result<impl Responder> {
 
 fn suggest(req: &HttpRequest<AppState>) -> Result<impl Responder> {
     let sig: String = req.match_info().query("type_signature")?;
+    let sig = percent_decode(sig.as_bytes()).decode_utf8()?.to_string();
     let cache: Arc<FnCache> = req.state().get_fn_cache();
     let res = (*cache).suggest(sig.as_str(), 10);
     Ok(match res {

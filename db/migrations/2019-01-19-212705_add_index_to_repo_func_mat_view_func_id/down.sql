@@ -1,0 +1,1 @@
+DROP INDEX repo_func_mat_view_func_id_index;

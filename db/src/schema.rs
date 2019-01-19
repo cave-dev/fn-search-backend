@@ -17,7 +17,10 @@ table! {
 
 joinable!(functions -> repositories (repo_id));
 
-allow_tables_to_appear_in_same_query!(functions, repositories,);
+allow_tables_to_appear_in_same_query!(
+    functions,
+    repositories,
+);
 
 table! {
     repository_function_mat_view (repo_id, func_id) {

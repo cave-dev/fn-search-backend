@@ -38,11 +38,20 @@ impl From<diesel::result::ConnectionError> for UpdateUrlError {
     }
 }
 
-pub fn update_url(cfg: &DbConfig, repo: &str, url: &str) -> Result<(), UpdateUrlError> {
+pub fn update_repo(
+    cfg: &DbConfig,
+    repo: &str,
+    url: &str,
+    version: &str,
+) -> Result<(), UpdateUrlError> {
     let db_url = get_db_url(&cfg);
     let conn = PgConnection::establish(db_url.as_str())?;
     conn.transaction(|| -> Result<(), UpdateUrlError> {
-        let new_repo = NewRepository { name: repo, url };
+        let new_repo = NewRepository {
+            name: repo,
+            url,
+            ver: version,
+        };
         let mut repos = repositories::table
             .filter(repositories::name.eq(&repo))
             .limit(1)
@@ -95,7 +104,7 @@ pub fn insert_functions(
                             println!("inserting to db: {}: {:?}", name, type_signature);
                             let new_function = NewFunction {
                                 repo_id: repo.id,
-                                name: name,
+                                name: name.as_str(),
                                 type_signature: &a,
                             };
                             diesel::insert_into(functions::table)
@@ -108,8 +117,8 @@ pub fn insert_functions(
                         } => {
                             let new_function = NewFunction {
                                 repo_id: repo.id,
-                                name: name,
-                                type_signature: definition,
+                                name: name.as_str(),
+                                type_signature: definition.as_str(),
                             };
                             println!("inserting to db: {}: {:?}", name, definition);
                             diesel::insert_into(functions::table)

@@ -1,6 +1,6 @@
 //! A module for caching or updating git repositories.
 
-use crate::db_queries::{update_url, UpdateUrlError};
+use crate::db_queries::{update_repo, UpdateUrlError};
 use crate::elm_package::{ElmPackage, ElmPackageError};
 use crate::git_repo::GitError;
 use fn_search_backend::DbConfig;
@@ -42,7 +42,12 @@ pub fn sync_repo(
 ) -> Result<SyncResult, SyncRepoError> {
     let repo_path = m.get_repo_path(o)?;
     let git_repo = m.find_git_repo(o)?;
-    update_url(&db_cfg, m.name.as_str(), git_repo.url.as_str())?;
+    update_repo(
+        &db_cfg,
+        m.name.as_str(),
+        git_repo.url.as_str(),
+        git_repo.version.as_str(),
+    )?;
     if Path::new(repo_path.as_str()).exists() {
         git_repo.update_repo(repo_path.as_str(), &o)?;
         Ok(SyncResult::Update)

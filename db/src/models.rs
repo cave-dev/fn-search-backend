@@ -36,7 +36,7 @@ impl PartialEq for Function {
 #[table_name = "functions"]
 pub struct NewFunction<'a> {
     pub repo_id: i32,
-    pub type_signature: &'a str,
+    pub type_signature: String,
     pub name: &'a str,
 }
 

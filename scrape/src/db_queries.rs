@@ -8,6 +8,7 @@ use fn_search_backend_db::{
     models::*,
     schema::*,
 };
+use rayon::prelude::*;
 use std::error::Error;
 use std::fmt;
 
@@ -86,56 +87,45 @@ pub fn insert_functions(
 
     match repos.pop() {
         Some(repo) => {
-            conn.transaction(|| -> Result<(), UpdateUrlError> {
-                elm_files
-                    .iter()
-                    .map(|file| file.exports.exports.iter())
-                    .flatten()
-                    .for_each(|export| match export {
-                        // matching enums
-                        ElmExport::Function {
-                            name: name,
-                            type_signature: type_signature,
-                        } => {
-                            let a = match type_signature {
-                                Some(typ_sig) => typ_sig.join(" "),
-                                None => String::from(" "),
-                            };
-                            println!("inserting to db: {}: {:?}", name, type_signature);
-                            let new_function = NewFunction {
-                                repo_id: repo.id,
-                                name: name.as_str(),
-                                type_signature: &a,
-                            };
-                            diesel::insert_into(functions::table)
-                                .values(&new_function)
-                                .execute(&conn);
+            let exports: Vec<_> = elm_files
+                .iter()
+                .map(|file| file.exports.exports.iter())
+                .flatten()
+                .collect();
+            let new_funcs: Vec<_> = exports
+                .par_iter()
+                .filter(|export| match export {
+                    ElmExport::Function {..} => true,
+                    _ => false,
+                })
+                .map(|export| match export {
+                    ElmExport::Function {
+                        name,
+                        type_signature,
+                    } => {
+                        let a = match type_signature {
+                            Some(typ_sig) => typ_sig.join(" "),
+                            None => String::from(" "),
+                        };
+                        NewFunction {
+                            repo_id: repo.id,
+                            name: name.as_str(),
+                            type_signature: a,
                         }
-                        ElmExport::Type {
-                            name: name,
-                            definition: definition,
-                        } => {
-                            let new_function = NewFunction {
-                                repo_id: repo.id,
-                                name: name.as_str(),
-                                type_signature: definition.as_str(),
-                            };
-                            println!("inserting to db: {}: {:?}", name, definition);
-                            diesel::insert_into(functions::table)
-                                .values(&new_function)
-                                .execute(&conn);
-                        }
-                    });
-                Ok(())
-            })
+                    }
+                    _ => panic!(),
+                })
+                .collect();
+            diesel::insert_into(functions::table)
+                .values(new_funcs.as_slice())
+                .execute(&conn)?;
+            Ok(())
         }
         None => {
             println!("No repository found {}", repo_name);
-            // no repository found
             Ok(())
         }
-    };
-    Ok(())
+    }
 }
 
 pub fn refresh_repo_func_mat_view(cfg: &DbConfig) -> Result<(), Box<Error>> {

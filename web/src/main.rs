@@ -1,6 +1,5 @@
 #[macro_use]
 extern crate clap;
-#[macro_use]
 extern crate diesel;
 
 // use jemallocator as our allocator

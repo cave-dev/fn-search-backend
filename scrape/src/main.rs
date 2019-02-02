@@ -74,18 +74,22 @@ fn parse(cfg: &Config, cache_config: &RepoCacheOptions) -> Result<(), Box<Error>
     // try to parse each elm file
     let repo_exports: HashMap<String, Vec<ElmFile>> = HashMap::new();
 
-    elm_libs
-        .iter()
+    println!("parsing elm source code for exports...");
+    // collect exported stuff from source code
+    let exports: Vec<_> = elm_libs
+        .par_iter()
         .map(|i| (i, i.get_exports(&cache_config)))
+        .collect();
+
+    println!("reducing exports...");
+    // convert the exports into a more usable format
+    let reduced_exports: Vec<_> = exports
+        .into_iter()
         .fold(repo_exports, |mut repo_exports, res| match res.1 {
             Ok(file_res_vec) => {
                 for file_res in file_res_vec {
                     match file_res {
                         Ok(elm_file) => {
-                            println!(
-                                "successfully parsed file {}: {:?}",
-                                elm_file.path, elm_file.exports
-                            );
                             match res.0.get_repo_path(cache_config) {
                                 Ok(repo_path) => match repo_exports.get(&repo_path) {
                                     Some(elm_files) => {
@@ -98,9 +102,8 @@ fn parse(cfg: &Config, cache_config: &RepoCacheOptions) -> Result<(), Box<Error>
                                         repo_exports.insert(res.0.name.to_string(), vec![elm_file]);
                                     }
                                 },
-
-                                ElmPackageError => {
-                                    eprintln!("Something went wrong");
+                                Err(e) => {
+                                    eprintln!("error while finding repository path: {}", e);
                                 }
                             }
                         }
@@ -116,15 +119,22 @@ fn parse(cfg: &Config, cache_config: &RepoCacheOptions) -> Result<(), Box<Error>
                 repo_exports
             }
         })
-        .iter()
+        .into_iter()
+        .collect();
+
+    println!("inserting functions into db...");
+    // insert the exported functions into the database
+    reduced_exports
+        .into_par_iter()
         .for_each(
-            |(name, exports)| match insert_functions(&cfg.db, name, exports) {
-                Ok(()) => {
-                    println!("Done inserting");
+            |(name, exports)| match insert_functions(&cfg.db, &name, &exports) {
+                Ok(_) => {
                 }
-                UpdateUrlError => eprintln!("something went wrong"),
+                Err(e) => eprintln!("error while inserting functions: {}", e),
             },
         );
+
+    println!("refreshing materialized views...");
     refresh_repo_func_mat_view(&cfg.db)?;
     Ok(())
 }

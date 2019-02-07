@@ -95,7 +95,7 @@ pub fn insert_functions(
             let new_funcs: Vec<_> = exports
                 .par_iter()
                 .filter(|export| match export {
-                    ElmExport::Function {..} => true,
+                    ElmExport::Function { .. } => true,
                     _ => false,
                 })
                 .map(|export| match export {

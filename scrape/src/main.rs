@@ -16,6 +16,7 @@ pub mod db_queries;
 pub mod elm_package;
 pub mod git_repo;
 pub mod repo_cache;
+mod subprocess;
 
 use crate::db_queries::{insert_functions, refresh_repo_func_mat_view};
 use crate::elm_package::{ElmFile, ElmPackage, ElmPackageError};
@@ -89,24 +90,22 @@ fn parse(cfg: &Config, cache_config: &RepoCacheOptions) -> Result<(), Box<Error>
             Ok(file_res_vec) => {
                 for file_res in file_res_vec {
                     match file_res {
-                        Ok(elm_file) => {
-                            match res.0.get_repo_path(cache_config) {
-                                Ok(repo_path) => match repo_exports.get(&repo_path) {
-                                    Some(elm_files) => {
-                                        let mut new_elm_files = elm_files.clone();
-                                        new_elm_files.push(elm_file);
-                                        repo_exports
-                                            .insert(res.0.name.to_string(), new_elm_files.to_vec());
-                                    }
-                                    None => {
-                                        repo_exports.insert(res.0.name.to_string(), vec![elm_file]);
-                                    }
-                                },
-                                Err(e) => {
-                                    eprintln!("error while finding repository path: {}", e);
+                        Ok(elm_file) => match res.0.get_repo_path(cache_config) {
+                            Ok(repo_path) => match repo_exports.get(&repo_path) {
+                                Some(elm_files) => {
+                                    let mut new_elm_files = elm_files.clone();
+                                    new_elm_files.push(elm_file);
+                                    repo_exports
+                                        .insert(res.0.name.to_string(), new_elm_files.to_vec());
                                 }
+                                None => {
+                                    repo_exports.insert(res.0.name.to_string(), vec![elm_file]);
+                                }
+                            },
+                            Err(e) => {
+                                eprintln!("error while finding repository path: {}", e);
                             }
-                        }
+                        },
                         Err(e) => {
                             eprintln!("error while parsing file: {}", e);
                         }
@@ -124,15 +123,12 @@ fn parse(cfg: &Config, cache_config: &RepoCacheOptions) -> Result<(), Box<Error>
 
     println!("inserting functions into db...");
     // insert the exported functions into the database
-    reduced_exports
-        .into_par_iter()
-        .for_each(
-            |(name, exports)| match insert_functions(&cfg.db, &name, &exports) {
-                Ok(_) => {
-                }
-                Err(e) => eprintln!("error while inserting functions: {}", e),
-            },
-        );
+    reduced_exports.into_par_iter().for_each(|(name, exports)| {
+        match insert_functions(&cfg.db, &name, &exports) {
+            Ok(_) => {}
+            Err(e) => eprintln!("error while inserting functions: {}", e),
+        }
+    });
 
     println!("refreshing materialized views...");
     refresh_repo_func_mat_view(&cfg.db)?;

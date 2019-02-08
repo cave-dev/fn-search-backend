@@ -1,6 +1,6 @@
 use crate::repo_cache::RepoCacheOptions;
-use fn_search_backend::Config;
 use crate::subprocess::{exec, ExecError};
+use fn_search_backend::Config;
 use std::process::Command;
 use std::string::FromUtf8Error;
 use std::time::Duration;

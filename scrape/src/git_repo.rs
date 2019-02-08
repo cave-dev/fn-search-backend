@@ -32,7 +32,12 @@ impl GitRepo {
         Err(GitError::ParseError(url.to_string()))
     }
 
-    pub fn clone_repo(&self, repo_path: &str, config: &Config, o: &RepoCacheOptions) -> Result<(), GitError> {
+    pub fn clone_repo(
+        &self,
+        repo_path: &str,
+        config: &Config,
+        o: &RepoCacheOptions,
+    ) -> Result<(), GitError> {
         exec(
             &mut Command::new(o.git_bin_path.as_str())
                 .env("GIT_TERMINAL_PROMPT", "0")
@@ -50,7 +55,12 @@ impl GitRepo {
         Ok(())
     }
 
-    pub fn update_repo(&self, repo_path: &str, config: &Config, o: &RepoCacheOptions) -> Result<(), GitError> {
+    pub fn update_repo(
+        &self,
+        repo_path: &str,
+        config: &Config,
+        o: &RepoCacheOptions,
+    ) -> Result<(), GitError> {
         exec(
             &mut Command::new(o.git_bin_path.as_str())
                 .env("GIT_TERMINAL_PROMPT", "0")

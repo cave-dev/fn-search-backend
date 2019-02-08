@@ -17,8 +17,8 @@
 use crate::chromium_dl::{chrome_dl, ChromeError};
 use crate::git_repo::{GitError, GitRepo};
 use crate::repo_cache::RepoCacheOptions;
-use fn_search_backend_parsers::{get_elm_exports, ElmExports};
 use fn_search_backend::Config;
+use fn_search_backend_parsers::{get_elm_exports, ElmExports};
 use glob::{glob, GlobError, PatternError};
 use select::document::Document;
 use select::predicate::{Attr, Class, Predicate};
@@ -64,7 +64,11 @@ impl ElmPackage {
     }
 
     /// Find the git url for a [ElmPackageMetadataRaw](struct.ElmPackageMetadataRaw.html)
-    pub fn find_git_repo(&self, config: &Config, o: &RepoCacheOptions) -> Result<GitRepo, ElmPackageError> {
+    pub fn find_git_repo(
+        &self,
+        config: &Config,
+        o: &RepoCacheOptions,
+    ) -> Result<GitRepo, ElmPackageError> {
         let url = format!("{}/packages/{}/latest/", PACKAGES_BASE_URL, self.name);
         let page_text = chrome_dl(url.as_str(), config, o)?;
         let document = Document::from(page_text.as_str());

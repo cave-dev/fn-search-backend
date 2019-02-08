@@ -21,7 +21,7 @@ pub fn exec(cmd: &mut Command, timeout: StdDuration) -> Result<ExecResult, ExecE
         let diff: Duration = now - start_time;
         if diff >= max_duration {
             let _ = child.kill();
-            return Err(ExecError::TimeoutError);
+            return Err(ExecError::TimeoutError { stdout, stderr });
         }
         let mut data_read = false;
         if !stdout_done {
@@ -75,7 +75,10 @@ pub struct ExecResult {
 
 #[derive(Debug)]
 pub enum ExecError {
-    TimeoutError,
+    TimeoutError {
+        stdout: Vec<u8>,
+        stderr: Vec<u8>,
+    },
     IoError(io::Error),
     ProcessError {
         status: ExitStatus,
@@ -90,9 +93,26 @@ impl Error for ExecError {}
 
 impl fmt::Display for ExecError {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        //TODO: improve display logic for process errors, show as strings
-        //      instead of vectors
-        write!(f, "{:?}", self)
+        match self {
+            ExecError::TimeoutError { stdout, stderr } => write!(
+                f,
+                "TimeoutError:\nstdout:\n{}\nstderr:\n{}\n",
+                String::from_utf8_lossy(stdout.as_slice()),
+                String::from_utf8_lossy(stderr.as_slice())
+            ),
+            ExecError::ProcessError {
+                status,
+                stdout,
+                stderr,
+            } => write!(
+                f,
+                "ProcessError:\nstatus code: {:?}\nstdout:\n{}\nstderr:\n{}\n",
+                status,
+                String::from_utf8_lossy(stdout.as_slice()),
+                String::from_utf8_lossy(stderr.as_slice())
+            ),
+            _ => write!(f, "{}", self),
+        }
     }
 }
 

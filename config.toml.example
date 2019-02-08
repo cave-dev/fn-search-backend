@@ -10,3 +10,7 @@ password = "fn_search_password"
 allowed_origin = "http://localhost:8080"
 bind_address = "127.0.0.1:8000"
 db_pool_size = 15
+
+[scrape]
+chrome_timeout = 10
+git_timeout = 30

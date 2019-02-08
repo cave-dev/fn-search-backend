@@ -31,7 +31,7 @@ fn sync(cfg: &Config, cache_config: &RepoCacheOptions) -> Result<(), Box<Error>>
     let elm_libs = elm_package::get_elm_libs()?;
     let failed_libs: Vec<&ElmPackage> = elm_libs
         .par_iter()
-        .map(|i| (i, sync_repo(i, &cache_config, &cfg.db)))
+        .map(|i| (i, sync_repo(i, &cache_config, cfg)))
         .filter_map(|r| match r.1 {
             Ok(res) => {
                 match res {
@@ -55,7 +55,7 @@ fn sync(cfg: &Config, cache_config: &RepoCacheOptions) -> Result<(), Box<Error>>
     // try failed libs again
     failed_libs
         .par_iter()
-        .map(|i| (i, sync_repo(i, &cache_config, &cfg.db)))
+        .map(|i| (i, sync_repo(i, &cache_config, cfg)))
         .for_each(|r| match r.1 {
             Ok(res) => {
                 match res {

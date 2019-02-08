@@ -25,9 +25,16 @@ pub struct WebConfig {
 }
 
 #[derive(Deserialize)]
+pub struct ScrapeConfig {
+    pub chrome_timeout: u64,
+    pub git_timeout: u64,
+}
+
+#[derive(Deserialize)]
 pub struct Config {
     pub db: DbConfig,
     pub web: WebConfig,
+    pub scrape: ScrapeConfig,
 }
 
 pub fn get_config(f: &str) -> Result<Config, Box<Error + Sync + Send>> {

@@ -20,14 +20,18 @@ pub fn exec(cmd: &mut Command, timeout: StdDuration) -> Result<ExecResult, ExecE
         let now = Utc::now();
         let diff: Duration = now - start_time;
         if diff >= max_duration {
+            let _ = child.kill();
             return Err(ExecError::TimeoutError);
         }
+        let mut data_read = false;
         if !stdout_done {
             if let Some(o) = &mut child.stdout {
                 let n = o.read(&mut buff)?;
                 stdout.write(&buff[0..n])?;
                 if n == 0 {
                     stdout_done = true;
+                } else {
+                    data_read = true;
                 }
             }
         }
@@ -37,6 +41,8 @@ pub fn exec(cmd: &mut Command, timeout: StdDuration) -> Result<ExecResult, ExecE
                 stderr.write(&buff[0..n])?;
                 if n == 0 {
                     stderr_done = true;
+                } else {
+                    data_read = true;
                 }
             }
         }
@@ -56,7 +62,9 @@ pub fn exec(cmd: &mut Command, timeout: StdDuration) -> Result<ExecResult, ExecE
             }
             return Ok(ExecResult { stdout, stderr });
         }
-        sleep(StdDuration::from_millis(100));
+        if !data_read {
+            sleep(StdDuration::from_millis(100));
+        }
     }
 }
 

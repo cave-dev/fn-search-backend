@@ -1,5 +1,6 @@
 use crate::repo_cache::RepoCacheOptions;
 use crate::subprocess::{exec, ExecError};
+use fn_search_backend::Config;
 use lazy_static::lazy_static;
 use regex::Regex;
 use std::process::Command;
@@ -31,7 +32,7 @@ impl GitRepo {
         Err(GitError::ParseError(url.to_string()))
     }
 
-    pub fn clone_repo(&self, repo_path: &str, o: &RepoCacheOptions) -> Result<(), GitError> {
+    pub fn clone_repo(&self, repo_path: &str, config: &Config, o: &RepoCacheOptions) -> Result<(), GitError> {
         exec(
             &mut Command::new(o.git_bin_path.as_str())
                 .env("GIT_TERMINAL_PROMPT", "0")
@@ -44,23 +45,23 @@ impl GitRepo {
                     self.url.as_str(),
                     repo_path,
                 ]),
-            Duration::from_secs(30),
+            Duration::from_secs(config.scrape.git_timeout),
         )?;
         Ok(())
     }
 
-    pub fn update_repo(&self, repo_path: &str, o: &RepoCacheOptions) -> Result<(), GitError> {
+    pub fn update_repo(&self, repo_path: &str, config: &Config, o: &RepoCacheOptions) -> Result<(), GitError> {
         exec(
             &mut Command::new(o.git_bin_path.as_str())
                 .env("GIT_TERMINAL_PROMPT", "0")
                 .args(&["-C", repo_path, "fetch", "--depth", "1", "--tags", "origin"]),
-            Duration::from_secs(30),
+            Duration::from_secs(config.scrape.git_timeout),
         )?;
         exec(
             &mut Command::new(o.git_bin_path.as_str())
                 .env("GIT_TERMINAL_PROMPT", "0")
                 .args(&["-C", repo_path, "reset", "--hard", self.version.as_str()]),
-            Duration::from_secs(10),
+            Duration::from_secs(5),
         )?;
         Ok(())
     }

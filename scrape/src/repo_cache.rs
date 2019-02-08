@@ -3,7 +3,7 @@
 use crate::db_queries::{update_repo, UpdateUrlError};
 use crate::elm_package::{ElmPackage, ElmPackageError};
 use crate::git_repo::GitError;
-use fn_search_backend::DbConfig;
+use fn_search_backend::Config;
 use std::path::Path;
 use std::{error::Error, fmt};
 
@@ -38,21 +38,21 @@ pub enum SyncResult {
 pub fn sync_repo(
     m: &ElmPackage,
     o: &RepoCacheOptions,
-    db_cfg: &DbConfig,
+    config: &Config,
 ) -> Result<SyncResult, SyncRepoError> {
     let repo_path = m.get_repo_path(o)?;
-    let git_repo = m.find_git_repo(o)?;
+    let git_repo = m.find_git_repo(config, o)?;
     update_repo(
-        &db_cfg,
+        &config.db,
         m.name.as_str(),
         git_repo.url.as_str(),
         git_repo.version.as_str(),
     )?;
     if Path::new(repo_path.as_str()).exists() {
-        git_repo.update_repo(repo_path.as_str(), &o)?;
+        git_repo.update_repo(repo_path.as_str(), config, o)?;
         Ok(SyncResult::Update)
     } else {
-        git_repo.clone_repo(repo_path.as_str(), o)?;
+        git_repo.clone_repo(repo_path.as_str(), config, o)?;
         Ok(SyncResult::Clone)
     }
 }

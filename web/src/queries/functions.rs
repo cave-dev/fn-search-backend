@@ -1,4 +1,4 @@
-use diesel::{pg::PgConnection, prelude::*, result::QueryResult};
+use fn_search_backend_db::diesel::{pg::PgConnection, prelude::*, result::QueryResult};
 use fn_search_backend_db::models::FunctionWithRepo;
 
 pub fn get_all_func_sigs(conn: &PgConnection) -> QueryResult<Vec<(String, i64)>> {
